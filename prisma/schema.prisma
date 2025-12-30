@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int        @id @default(autoincrement())
+  email     String     @unique
+  username  String
+  githubId  String?    @unique
+  createdAt DateTime   @default(now())
+  Projects  Projects[]
+}
+
+model Projects {
+  id        Int         @id @default(autoincrement())
+  name      String
+  user      User        @relation(fields: [user_id], references: [id])
+  user_id   Int
+  repoUrl   String      @unique
+  url       String      @unique
+  type      ProjectType
+  status    String      @default("CREATED")
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@unique([user_id, name])
+}
+
+enum ProjectType {
+  STATIC
+  REACT
+}
