@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { AuthController } from './auth/auth.controller';
-import { AuthService } from './auth/auth.service';
+import { AppController } from './app.controller.js';
+import { AppService } from './app.service.js';
 import { ConfigModule } from '@nestjs/config';
-import { PrismaModule } from './prisma/prisma.model';
+import { PrismaModule } from './prisma/prisma.module.js';
+import { GithubController } from './github/github.controller.js';
+import { GithubService } from './github/github.service.js';
+import { AuthModule } from './auth/auth.module.js';
 
 @Module({
   imports: [
@@ -12,8 +13,9 @@ import { PrismaModule } from './prisma/prisma.model';
       isGlobal: true,
     }),
     PrismaModule,
+    AuthModule,
   ],
-  controllers: [AppController, AuthController],
-  providers: [AppService, AuthService],
+  controllers: [AppController, GithubController],
+  providers: [AppService, GithubService],
 })
 export class AppModule {}

@@ -1,9 +1,9 @@
 import { Injectable, Query, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { Prisma, PrismaClient } from '../../generated/prisma/client';
+import { Prisma, PrismaClient } from '../../generated/prisma/client.js';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class AuthService {
@@ -32,6 +32,45 @@ export class AuthService {
       { headers: { Accept: 'application/json' } },
     );
 
-    return data;
+    const accessToken = data.access_token;
+
+    const { data: githubUser } = await axios.get(
+      'https://api.github.com/user',
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+
+    const user = this.prisma.user.upsert({
+      where: {
+        githubId: githubUser.id.toString(),
+      },
+      update: {
+        githubAuth: {
+          upsert: {
+            update: {
+              accessToken: accessToken,
+              lastLoginAt: new Date(),
+            },
+            create: {
+              accessToken: accessToken,
+            },
+          },
+        },
+      },
+      create: {
+        githubId: githubUser.id.toString(),
+        username: githubUser.login,
+        githubAuth: {
+          create: {
+            accessToken,
+          },
+        },
+      },
+    });
+
+    return user;
   }
 }
