@@ -8,30 +8,52 @@ datasource db {
 }
 
 model User {
-  id        Int        @id @default(autoincrement())
-  email     String     @unique
+  id        Int      @id @default(autoincrement())
+  githubId  String   @unique
   username  String
-  githubId  String?    @unique
-  createdAt DateTime   @default(now())
-  Projects  Projects[]
+  createdAt DateTime @default(now())
+
+  Projects Projects[]
 }
 
 model Projects {
-  id        Int         @id @default(autoincrement())
-  name      String
-  user      User        @relation(fields: [user_id], references: [id])
-  user_id   Int
-  repoUrl   String      @unique
-  url       String      @unique
-  type      ProjectType
-  status    String      @default("CREATED")
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id          Int           @id @default(autoincrement())
+  name        String
+  user        User          @relation(fields: [user_id], references: [id])
+  user_id     Int
+  repoUrl     String        @unique
+  url         String        @unique
+  type        ProjectType
+  status      String        @default("CREATED")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deployments Deployments[]
 
   @@unique([user_id, name])
+}
+
+model Deployments {
+  id         Int              @id @default(autoincrement())
+  status     DeploymentStatus @default(NOT_STARTED)
+  commitHash String?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @default(now()) @updatedAt
+
+  project    Projects @relation(fields: [project_id], references: [id])
+  project_id Int
+
+  @@index([project_id, commitHash])
 }
 
 enum ProjectType {
   STATIC
   REACT
+}
+
+enum DeploymentStatus {
+  NOT_STARTED
+  QUEUED
+  IN_PROGRESS
+  READY
+  FAIL
 }
