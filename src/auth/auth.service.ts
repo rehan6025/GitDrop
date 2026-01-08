@@ -1,19 +1,19 @@
 import { Injectable, Query, Req, Res } from '@nestjs/common';
-import type { Request, Response } from 'express';
-import { Prisma, PrismaClient } from '../../generated/prisma/client.js';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
   constructor(
     private configService: ConfigService,
     private readonly prisma: PrismaService,
+    private jwtService: JwtService,
   ) {}
 
   signUp(): string {
-    //build a query to send to github
+    //building a query to send to github
     const query = `https://github.com/login/oauth/authorize?client_id=${this.configService.get('CLIENT_ID')}&redirect_uri=${this.configService.get('REDIRECT_URI')}&scope=user%20repo`;
 
     return query;
@@ -43,7 +43,7 @@ export class AuthService {
       },
     );
 
-    const user = this.prisma.user.upsert({
+    const user = await this.prisma.user.upsert({
       where: {
         githubId: githubUser.id.toString(),
       },
@@ -71,6 +71,12 @@ export class AuthService {
       },
     });
 
-    return user;
+    const payload = {
+      id: user.id,
+      githubId: user.githubId,
+      githubUsername: user.username,
+    };
+
+    return this.jwtService.sign(payload);
   }
 }

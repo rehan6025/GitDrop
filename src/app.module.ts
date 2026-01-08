@@ -6,6 +6,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { GithubController } from './github/github.controller.js';
 import { GithubService } from './github/github.service.js';
 import { AuthModule } from './auth/auth.module.js';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { AuthModule } from './auth/auth.module.js';
     }),
     PrismaModule,
     AuthModule,
+    JwtModule,
   ],
   controllers: [AppController, GithubController],
   providers: [AppService, GithubService],

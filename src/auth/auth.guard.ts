@@ -7,7 +7,6 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
-import { Observable } from 'rxjs';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -16,17 +15,23 @@ export class AuthGuard implements CanActivate {
     private configService: ConfigService,
   ) {}
 
-  canActivate(
-    context: ExecutionContext,
-  ): boolean | Promise<boolean> | Observable<boolean> {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const token = this.extractToken(request);
 
     if (!token) throw new UnauthorizedException();
 
     const secret = this.configService.get<string>('JWT_SECRET');
-    this.jwtService.verify(token);
 
+    try {
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: secret,
+      });
+      // attach user to request so , forward ki req can access this info
+      request['user'] = payload;
+    } catch {
+      throw new UnauthorizedException();
+    }
     return true;
   }
 
