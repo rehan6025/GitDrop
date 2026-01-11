@@ -7,6 +7,7 @@ import { GithubController } from './github/github.controller.js';
 import { GithubService } from './github/github.service.js';
 import { AuthModule } from './auth/auth.module.js';
 import { JwtModule } from '@nestjs/jwt';
+import { DeploymentModule } from './deployment/deployment.module.js';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { JwtModule } from '@nestjs/jwt';
     PrismaModule,
     AuthModule,
     JwtModule,
+    DeploymentModule,
   ],
   controllers: [AppController, GithubController],
   providers: [AppService, GithubService],
