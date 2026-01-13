@@ -10,7 +10,17 @@ export class DeploymentController {
   @Post()
   @UseGuards(AuthGuard)
   addToBuild(@Req() request: Request) {
-    const repoData = request.body;
-    this.deploymentService.addToQueue(repoData);
+    const { repoUrl, commitHash, branch, name, type } = request.body;
+    //@ts-ignore
+    const userId = request.user.id;
+
+    this.deploymentService.enqueueDeployment(
+      name,
+      userId,
+      repoUrl,
+      type,
+      branch,
+      commitHash,
+    );
   }
 }

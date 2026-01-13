@@ -1,4 +1,4 @@
-import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
 import { GithubService } from './github.service.js';
 import type { Request } from 'express';
 import { AuthGuard } from '../auth/auth.guard.js';
@@ -12,6 +12,19 @@ export class GithubController {
   async getRepos(@Req() request: Request): Promise<any> {
     // @ts-ignore
     const user = request.user;
-    return await this.githubService.getRepos(user);
+
+    const repos = await this.githubService.getRepos(user);
+
+    return repos;
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('repos/:owner/:repo/branches')
+  getBranches(
+    @Req() req,
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+  ) {
+    return this.githubService.getBranches(req.user, owner, repo);
   }
 }

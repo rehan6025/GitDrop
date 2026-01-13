@@ -8,6 +8,7 @@ import { GithubService } from './github/github.service.js';
 import { AuthModule } from './auth/auth.module.js';
 import { JwtModule } from '@nestjs/jwt';
 import { DeploymentModule } from './deployment/deployment.module.js';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
@@ -18,6 +19,12 @@ import { DeploymentModule } from './deployment/deployment.module.js';
     AuthModule,
     JwtModule,
     DeploymentModule,
+    BullModule.forRoot({
+      connection: {
+        host: 'localhost',
+        port: 6379,
+      },
+    }),
   ],
   controllers: [AppController, GithubController],
   providers: [AppService, GithubService],

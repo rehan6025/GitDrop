@@ -42,4 +42,32 @@ export class GithubService {
       throw new NotFoundException('Could not fetch Github repositories');
     }
   }
+
+  async getBranches(user: AuthenticatedUser, owner: string, repo: string) {
+    const githubAuth = await this.prisma.githubAuth.findUnique({
+      where: { userId: user.id },
+    });
+
+    if (!githubAuth) {
+      throw new UnauthorizedException('GitHub account not linked');
+    }
+
+    try {
+      const { data } = await axios.get(
+        `https://api.github.com/repos/${owner}/${repo}/branches`,
+        {
+          headers: {
+            Authorization: `Bearer ${githubAuth.accessToken}`,
+          },
+        },
+      );
+
+      return data.map((branch) => ({
+        name: branch.name,
+        sha: branch.commit.sha,
+      }));
+    } catch (err) {
+      throw new NotFoundException('Could not fetch branches');
+    }
+  }
 }
