@@ -14,7 +14,7 @@ export class DeploymentController {
     //@ts-ignore
     const userId = request.user.id;
 
-    this.deploymentService.enqueueDeployment(
+    return this.deploymentService.enqueueDeployment(
       name,
       userId,
       repoUrl,

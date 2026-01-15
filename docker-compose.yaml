@@ -12,6 +12,10 @@ services:
     volumes:
       - ./db-data:/var/lib/postgresql
 
+  # docker exec -it nest-postgres psql -U postgres
+
+  # docker exec -it my-redis redis-cli
+
   redis:
     image: redis:latest
     container_name: my-redis
