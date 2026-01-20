@@ -9,6 +9,9 @@ import { AuthModule } from './auth/auth.module.js';
 import { JwtModule } from '@nestjs/jwt';
 import { DeploymentModule } from './deployment/deployment.module.js';
 import { BullModule } from '@nestjs/bullmq';
+import { SandboxController } from './sandbox/sandbox.controller';
+import { SandboxService } from './sandbox/sandbox.service';
+import { SandboxModule } from './sandbox/sandbox.module';
 
 @Module({
   imports: [
@@ -25,8 +28,9 @@ import { BullModule } from '@nestjs/bullmq';
         port: 6379,
       },
     }),
+    SandboxModule,
   ],
-  controllers: [AppController, GithubController],
-  providers: [AppService, GithubService],
+  controllers: [AppController, GithubController, SandboxController],
+  providers: [AppService, GithubService, SandboxService],
 })
 export class AppModule {}

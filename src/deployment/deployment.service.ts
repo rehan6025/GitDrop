@@ -56,6 +56,7 @@ export class DeploymentService {
         },
         {
           removeOnComplete: true,
+          removeOnFail: true,
           attempts: 3,
         },
       );
