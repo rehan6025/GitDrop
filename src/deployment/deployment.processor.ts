@@ -1,15 +1,19 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SandboxService } from '../sandbox/sandbox.service.js';
 
 @Processor('build-queue')
 export class DeploymentProcessor extends WorkerHost {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private sandbox: SandboxService,
+  ) {
     super();
   }
 
   async process(job: Job): Promise<any> {
-    await this.wait(15);
+    this.sandbox.create(job.data.deploymentId);
     return { success: true };
   }
 
