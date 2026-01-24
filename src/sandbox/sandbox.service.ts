@@ -1,15 +1,40 @@
 import { Injectable } from '@nestjs/common';
 import { spawn } from 'child_process';
-import { kill, stderr, stdin, stdout } from 'process';
 
 @Injectable()
 export class SandboxService {
-  async create(deploymentId: string) {
-    return new Promise((resolve, reject) => {
-      const proc = spawn('docker', [`run node:lts-alpine`]);
+  async cleanupState(deploymentId: string) {
+    await new Promise<void>((res) => {
+      const cleanup = spawn('docker', [
+        'rm',
+        '-f',
+        `deployment-${deploymentId}`,
+      ]);
 
-      proc.stdout.on('data', streamLogs);
-      proc.stderr.on('data', streamLogs);
+      cleanup.on('close', () => res());
+    });
+  }
+
+  async create(deploymentId: string) {
+    await this.cleanupState(deploymentId);
+    return new Promise<void>((resolve, reject) => {
+      const proc = spawn('docker', [
+        'run',
+        '--rm',
+        `--name`,
+        `deployment-${deploymentId}`,
+        'node:lts-alpine',
+        'node',
+        '-e',
+        "console.log('hello');",
+      ]);
+
+      proc.stdout.on('data', (data) => {
+        console.log(`[${deploymentId}]`, data.toString());
+      });
+      proc.stderr.on('data', (data) => {
+        console.log(`[${deploymentId}]`, data.toString());
+      });
 
       proc.on('close', (code) => {
         if (code === 0) resolve();
