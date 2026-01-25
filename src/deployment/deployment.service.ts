@@ -18,6 +18,7 @@ export class DeploymentService {
     type: ProjectType,
     branch: string,
     commitHash?: string,
+    buildCommand?: string,
   ) {
     const project = await this.prisma.projects.upsert({
       where: {
@@ -53,6 +54,7 @@ export class DeploymentService {
           repoUrl,
           branch,
           commitHash: commitHash ?? null,
+          buildCommand: buildCommand,
         },
         {
           removeOnComplete: true,

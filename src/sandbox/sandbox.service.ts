@@ -10,72 +10,50 @@ export class SandboxService {
         '-f',
         `deployment-${deploymentId}`,
       ]);
-
       cleanup.on('close', () => res());
     });
   }
 
-  async create(deploymentId: string) {
+  async create(deploymentId: string, repoUrl: string, buildCommand?: string) {
     await this.cleanupState(deploymentId);
+
     return new Promise<void>((resolve, reject) => {
+      const shellCommand = `
+        apk add --no-cache git &&
+        mkdir -p /app &&
+        cd /app &&
+        git clone ${repoUrl} repo &&
+        cd repo &&
+        ${
+          buildCommand
+            ? `npm install && ${buildCommand}`
+            : `echo "No build command provided, skipping build"`
+        }
+      `;
+
       const proc = spawn('docker', [
         'run',
         '--rm',
-        `--name`,
+        '--name',
         `deployment-${deploymentId}`,
         'node:lts-alpine',
-        'node',
-        '-e',
-        "console.log('hello');",
+        'sh',
+        '-c',
+        shellCommand,
       ]);
 
       proc.stdout.on('data', (data) => {
         console.log(`[${deploymentId}]`, data.toString());
       });
+
       proc.stderr.on('data', (data) => {
         console.log(`[${deploymentId}]`, data.toString());
       });
 
       proc.on('close', (code) => {
         if (code === 0) resolve();
-        else reject(new Error(`Exit code ${code}`));
+        else reject(new Error(`Container exited with code ${code}`));
       });
     });
   }
 }
-
-// const dockerCmd =
-//   'docker run --name base-static node:lts-alpine node -e "console.log(\'hello from inside our container\')"';
-
-// exec(dockerCmd, (error, stdout, stderr) => {
-//   if (error) {
-//     console.error(`exec error: ${error}`);
-//     return;
-//   }
-//   console.log(`stdout: ${stdout.toString()}`);
-//   console.error(`stderr: ${stderr}`);
-// });
-
-// const logsCmd = 'docker logs base-static';
-// exec(logsCmd, (error, stdout, stderr) => {
-//   if (error) {
-//     if (error) {
-//       console.error(`exec error: ${error}`);
-//       return;
-//     }
-//     console.log(`stdout: ${stdout.toString()}`);
-//     console.error(`stderr: ${stderr.toString()}`);
-//   }
-// });
-
-// const killCmd = 'docker rm -f base-static';
-// exec(killCmd, (error, stdout, stderr) => {
-//   if (error) {
-//     console.error(`exec error: ${error}`);
-//     return;
-//   }
-//   console.log(`stdout: ${stdout.toString()}`);
-//   console.error(`stderr: ${stderr.toString()}`);
-// });
-
-// // stdin.pipe(stdout);
