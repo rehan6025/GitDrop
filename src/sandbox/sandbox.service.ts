@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { spawn } from 'child_process';
+import { rm, mkdir } from 'fs/promises';
 
 @Injectable()
 export class SandboxService {
+  constructor(private configService: ConfigService) {}
+
   async cleanupState(deploymentId: string) {
     await new Promise<void>((res) => {
       const cleanup = spawn('docker', [
@@ -14,8 +18,22 @@ export class SandboxService {
     });
   }
 
-  async create(deploymentId: string, repoUrl: string, buildCommand?: string) {
+  async create(jobData: any) {
+    const {
+      deploymentId,
+      repoUrl,
+      commitHash,
+      branch,
+      projectId,
+      buildCommand,
+    } = jobData;
     await this.cleanupState(deploymentId);
+    const baseDir = 'D:/deployments';
+    const projectDir = `${baseDir}/project-${projectId}`;
+    const outputDir = `${projectDir}/current`;
+
+    await rm(outputDir, { recursive: true, force: true });
+    await mkdir(outputDir, { recursive: true });
 
     return new Promise<void>((resolve, reject) => {
       const shellCommand = `
@@ -25,10 +43,21 @@ export class SandboxService {
         git clone ${repoUrl} repo &&
         cd repo &&
         ${
-          buildCommand
-            ? `npm install && ${buildCommand}`
-            : `echo "No build command provided, skipping build"`
-        }
+          commitHash
+            ? `git checkout ${commitHash}`
+            : `git checkout ${branch} && git rev-parse HEAD`
+        } &&
+          ${
+            buildCommand
+              ? `
+        npm install &&
+        ${buildCommand} &&
+        cp -r dist/* /output || cp -r build/* /output
+      `
+              : `
+        cp -r ./* /output
+      `
+          }
       `;
 
       const proc = spawn('docker', [
@@ -36,6 +65,8 @@ export class SandboxService {
         '--rm',
         '--name',
         `deployment-${deploymentId}`,
+        '-v',
+        `${outputDir}:/output`,
         'node:lts-alpine',
         'sh',
         '-c',

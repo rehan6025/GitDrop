@@ -51,6 +51,7 @@ export class DeploymentService {
         'build-job',
         {
           deploymentId: deployment.id,
+          projectId: project.id,
           repoUrl,
           branch,
           commitHash: commitHash ?? null,

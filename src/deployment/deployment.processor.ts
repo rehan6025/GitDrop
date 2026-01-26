@@ -15,11 +15,7 @@ export class DeploymentProcessor extends WorkerHost {
 
   async process(job: Job): Promise<any> {
     try {
-      await this.sandbox.create(
-        job.data.deploymentId,
-        job.data.repoUrl,
-        job.data.buildCommand,
-      );
+      await this.sandbox.create(job.data);
       await this.markReady(job);
     } catch (error) {
       await this.markFailed(job);
