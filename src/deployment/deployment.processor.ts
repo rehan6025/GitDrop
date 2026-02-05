@@ -2,7 +2,6 @@ import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SandboxService } from '../sandbox/sandbox.service.js';
-import { error } from 'console';
 
 @Processor('build-queue')
 export class DeploymentProcessor extends WorkerHost {

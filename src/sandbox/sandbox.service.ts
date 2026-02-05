@@ -28,7 +28,7 @@ export class SandboxService {
       buildCommand,
     } = jobData;
     await this.cleanupState(deploymentId);
-    const baseDir = 'D:/deployments';
+    const baseDir = 'C:/Users/Rehan/Desktop/backup coding/Projects/deployments';
     const projectDir = `${baseDir}/project-${projectId}`;
     const outputDir = `${projectDir}/current`;
 
