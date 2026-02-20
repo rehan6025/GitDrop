@@ -12,29 +12,25 @@ http {
 
     server {
         listen 80;
-        server_name localhost;
+        
+        # Capture subdomain like project-1.localhost
+        server_name ~^(?<proj>project-[0-9]+)\.localhost$;
 
-        # 1. Global Root (Must match your actual folder)
-        root "C:/Users/Rehan/Desktop/backup_coding/Projects/deployments";
+        # Base folder where all projects exist
+        root "C:/Users/Rehan/Desktop/backup_coding/Projects/deployments/$proj/current";
 
-        # 2. Debug Logs
-        error_log "C:/nginx/logs/debug_error.log" debug;
+        index index.html;
 
-        # 3. Dynamic Project Routing (The "Try Files" Method)
-        # logic: Capture 'project-1' as $proj, and the rest as $asset
-        location ~ ^/(?<proj>project-[0-9]+)(?<asset>/.*)?$ {
-            
-            # Enable directory listing so you see errors instead of 403
-            autoindex on;
-            index index.html;
-
-            # MAGIC LINE:
-            # 1. Look for file at: /project-1/current/style.css
-            # 2. Look for dir at:  /project-1/current/style.css/
-            # 3. Look for index:   /project-1/current/index.html
-            try_files /$proj/current$asset /$proj/current$asset/index.html =404;
+        # SPA handling for React
+        location / {
+            try_files $uri $uri/ /index.html;
         }
 
-        location = /favicon.ico { return 204; }
+        location = /favicon.ico { 
+            return 204; 
+        }
+
+        # Debug logs (optional)
+        error_log "C:/nginx/logs/debug_error.log" debug;
     }
 }

@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { spawn } from 'child_process';
 import { rm, mkdir } from 'fs/promises';
 
 @Injectable()
 export class SandboxService {
-  constructor(private configService: ConfigService) {}
+  constructor() {}
 
   async cleanupState(deploymentId: string) {
     await new Promise<void>((res) => {
@@ -28,7 +27,7 @@ export class SandboxService {
       buildCommand,
     } = jobData;
     await this.cleanupState(deploymentId);
-    const baseDir = 'C:/Users/Rehan/Desktop/backup coding/Projects/deployments';
+    const baseDir = 'C:/Users/Rehan/Desktop/backup_coding/Projects/deployments';
     const projectDir = `${baseDir}/project-${projectId}`;
     const outputDir = `${projectDir}/current`;
 
