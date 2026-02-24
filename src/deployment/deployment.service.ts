@@ -31,7 +31,7 @@ export class DeploymentService {
       create: {
         name,
         repoUrl,
-        url: `${name}.localhost`,
+        url: `${name}`,
         type,
         user: { connect: { id: userId } },
       },
@@ -56,6 +56,7 @@ export class DeploymentService {
           branch,
           commitHash: commitHash ?? null,
           buildCommand: buildCommand,
+          url: project.url,
         },
         {
           removeOnComplete: true,

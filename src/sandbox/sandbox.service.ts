@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { spawn } from 'child_process';
 import { rm, mkdir } from 'fs/promises';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class SandboxService {
-  constructor() {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async cleanupState(deploymentId: string) {
     await new Promise<void>((res) => {
@@ -25,8 +26,10 @@ export class SandboxService {
       branch,
       projectId,
       buildCommand,
+      url,
     } = jobData;
     await this.cleanupState(deploymentId);
+
     const baseDir = 'C:/Users/Rehan/Desktop/backup_coding/Projects/deployments';
     const projectDir = `${baseDir}/project-${projectId}`;
     const outputDir = `${projectDir}/current`;
