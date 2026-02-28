@@ -51,7 +51,7 @@ model Deployments {
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @default(now()) @updatedAt
 
-  project    Projects @relation(fields: [project_id], references: [id])
+  project    Projects @relation(fields: [project_id], references: [id], onDelete: Cascade)
   project_id Int
 
   @@index([project_id, commitHash])

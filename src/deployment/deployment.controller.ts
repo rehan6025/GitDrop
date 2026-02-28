@@ -10,7 +10,7 @@ export class DeploymentController {
   @Post()
   @UseGuards(AuthGuard)
   addToBuild(@Req() request: Request) {
-    const { repoUrl, commitHash, branch, name, type, buildCommand } =
+    const { repoUrl, commitHash, branch, name, type, buildCommand, url } =
       request.body;
     //@ts-ignore
     const userId = request.user.id;
@@ -21,6 +21,7 @@ export class DeploymentController {
       repoUrl,
       type,
       branch,
+      url,
       commitHash,
       buildCommand,
     );

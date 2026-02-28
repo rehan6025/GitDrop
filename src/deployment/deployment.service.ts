@@ -17,6 +17,7 @@ export class DeploymentService {
     repoUrl: string,
     type: ProjectType,
     branch: string,
+    url: string,
     commitHash?: string,
     buildCommand?: string,
   ) {
@@ -31,7 +32,7 @@ export class DeploymentService {
       create: {
         name,
         repoUrl,
-        url: `${name}`,
+        url: `${url}`,
         type,
         user: { connect: { id: userId } },
       },
@@ -40,13 +41,13 @@ export class DeploymentService {
     const deployment = await this.prisma.deployments.create({
       data: {
         status: 'QUEUED',
-
         commitHash: commitHash ?? null,
         project_id: project.id,
       },
     });
 
     try {
+      console.log(`adding to build queue , project url: ${project.url}`);
       await this.buildQueue.add(
         'build-job',
         {

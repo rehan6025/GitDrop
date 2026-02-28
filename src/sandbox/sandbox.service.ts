@@ -31,7 +31,7 @@ export class SandboxService {
     await this.cleanupState(deploymentId);
 
     const baseDir = 'C:/Users/Rehan/Desktop/backup_coding/Projects/deployments';
-    const projectDir = `${baseDir}/project-${projectId}`;
+    const projectDir = `${baseDir}/${url}`;
     const outputDir = `${projectDir}/current`;
 
     await rm(outputDir, { recursive: true, force: true });
