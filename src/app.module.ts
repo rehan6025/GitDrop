@@ -11,6 +11,7 @@ import { DeploymentModule } from './deployment/deployment.module.js';
 import { BullModule } from '@nestjs/bullmq';
 import { SandboxService } from './sandbox/sandbox.service.js';
 import { SandboxModule } from './sandbox/sandbox.module.js';
+import { ProjectsModule } from './projects/projects.module.js';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { SandboxModule } from './sandbox/sandbox.module.js';
       },
     }),
     SandboxModule,
+    ProjectsModule,
   ],
   controllers: [AppController, GithubController],
   providers: [AppService, GithubService, SandboxService],

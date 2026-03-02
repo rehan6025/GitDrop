@@ -12,6 +12,10 @@ import { SandboxModule } from '../sandbox/sandbox.module.js';
     AuthModule,
     BullModule.registerQueue({
       name: 'build-queue',
+      connection: {
+        host: 'localhost',
+        port: 6379,
+      },
     }),
   ],
   providers: [DeploymentService, DeploymentProcessor],
