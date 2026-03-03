@@ -1,8 +1,9 @@
-import { Injectable, Query, Req, Res } from '@nestjs/common';
+import { Injectable, NotFoundException, Query, Req, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { JwtService } from '@nestjs/jwt';
+import { NotFoundError } from 'rxjs';
 
 @Injectable()
 export class AuthService {
@@ -78,5 +79,20 @@ export class AuthService {
     };
 
     return this.jwtService.sign(payload);
+  }
+
+  async getProfile(userId: number) {
+    try {
+      const data = await this.prisma.user.findFirst({
+        where: {
+          id: userId,
+        },
+      });
+
+      return data;
+    } catch (error) {
+      console.log('auth service :: getProfile ::', error);
+      throw new NotFoundException('Error getting user profile');
+    }
   }
 }
