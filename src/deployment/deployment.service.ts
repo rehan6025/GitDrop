@@ -1,5 +1,5 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProjectType } from 'generated/prisma/enums.js';
@@ -11,6 +11,8 @@ export class DeploymentService {
     private readonly prisma: PrismaService,
   ) {}
 
+  private readonly logger = new Logger(DeploymentService.name);
+
   async enqueueDeployment(
     name: string,
     userId: number,
@@ -21,6 +23,7 @@ export class DeploymentService {
     commitHash?: string,
     buildCommand?: string,
   ) {
+    this.logger.log(`Enqueue Deployment endpoint hit for project:${name}`);
     const project = await this.prisma.projects.upsert({
       where: {
         user_id_name: {
@@ -37,6 +40,7 @@ export class DeploymentService {
         user: { connect: { id: userId } },
       },
     });
+    this.logger.log(`Added db entry for project :${project.id}`);
 
     const deployment = await this.prisma.deployments.create({
       data: {
@@ -46,8 +50,10 @@ export class DeploymentService {
       },
     });
 
+    this.logger.log(`Added deployment record in db:${deployment.id}`);
+
     try {
-      console.log(`adding to build queue , project url: ${project.url}`);
+      this.logger.log(`adding to build queue , project url: ${project.url}`);
       await this.buildQueue.add(
         'build-job',
         {
@@ -68,6 +74,8 @@ export class DeploymentService {
 
       return { deploymentId: deployment.id, status: 'QUEUED' };
     } catch (error) {
+      this.logger.error(`Failed to enqueue deployement ${deployment.id}`);
+
       await this.prisma.deployments.update({
         where: { id: deployment.id },
         data: { status: 'FAIL' },
