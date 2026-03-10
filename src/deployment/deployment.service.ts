@@ -31,11 +31,15 @@ export class DeploymentService {
           name,
         },
       },
-      update: {},
+      update: {
+        repoUrl,
+        url,
+        type,
+      },
       create: {
         name,
         repoUrl,
-        url: `${url}`,
+        url,
         type,
         user: { connect: { id: userId } },
       },
@@ -59,7 +63,7 @@ export class DeploymentService {
         {
           deploymentId: deployment.id,
           projectId: project.id,
-          repoUrl,
+          repoUrl: project.repoUrl,
           branch,
           commitHash: commitHash ?? null,
           buildCommand: buildCommand,

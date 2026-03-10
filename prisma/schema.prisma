@@ -33,8 +33,9 @@ model Projects {
   name        String
   user        User          @relation(fields: [user_id], references: [id])
   user_id     Int
-  repoUrl     String        @unique
+  repoUrl     String
   url         String        @unique
+  branch      String        @default("main")
   type        ProjectType
   status      String        @default("CREATED")
   createdAt   DateTime      @default(now())

@@ -1,6 +1,7 @@
 # Git-Drop API Documentation
 
 ## Table of Contents
+
 1. [Project Overview](#project-overview)
 2. [Architecture & Tech Stack](#architecture--tech-stack)
 3. [Authentication System](#authentication-system)
@@ -29,6 +30,7 @@ The backend is built with **NestJS** (Node.js framework), uses **PostgreSQL** wi
 ## Architecture & Tech Stack
 
 ### Backend Stack
+
 - **Framework**: NestJS (TypeScript)
 - **Database**: PostgreSQL with Prisma ORM
 - **Queue System**: BullMQ (Redis-based)
@@ -36,6 +38,7 @@ The backend is built with **NestJS** (Node.js framework), uses **PostgreSQL** wi
 - **External APIs**: GitHub OAuth API, GitHub REST API
 
 ### Key Features
+
 - RESTful API design
 - JWT-based authentication with cookie storage
 - Background job processing for deployments
@@ -43,6 +46,7 @@ The backend is built with **NestJS** (Node.js framework), uses **PostgreSQL** wi
 - Cookie-based session management
 
 ### Base URL
+
 - **Development**: `http://localhost:3000`
 - **Production**: Configure via `PORT` environment variable
 
@@ -51,6 +55,7 @@ The backend is built with **NestJS** (Node.js framework), uses **PostgreSQL** wi
 ## Authentication System
 
 ### Overview
+
 The application uses GitHub OAuth 2.0 for authentication. The flow is:
 
 1. User clicks "Login with GitHub"
@@ -65,23 +70,27 @@ The application uses GitHub OAuth 2.0 for authentication. The flow is:
 ### Authentication Flow Details
 
 **Step 1: Initiate Login**
+
 - Frontend redirects user to: `GET /auth/github`
 - No authentication required
 - Backend redirects to GitHub OAuth page
 
 **Step 2: OAuth Callback**
+
 - GitHub redirects to: `GET /auth/callback?code={authorization_code}`
 - Backend processes the callback
 - Sets JWT cookie with 7-day expiration
 - Redirects to frontend URL (configured via `FRONTEND_URL` env var, defaults to `http://localhost:5173`)
 
 **Step 3: Authenticated Requests**
+
 - All protected endpoints require JWT token
 - Token is sent automatically via HTTP-only cookie
 - Frontend doesn't need to manually handle token storage
 - Token contains: `{ id, githubId, githubUsername }`
 
 ### Cookie Configuration
+
 - **Name**: `jwt`
 - **HttpOnly**: `true` (prevents JavaScript access)
 - **SameSite**: `lax`
@@ -89,7 +98,8 @@ The application uses GitHub OAuth 2.0 for authentication. The flow is:
 - **MaxAge**: 7 days (604800000 milliseconds)
 
 ### Protected Endpoints
-All endpoints except `/`, `/auth/github`, and `/auth/callback` require authentication via `AuthGuard`.
+
+All endpoints except `/`, `/auth/github`, and `/auth/callback` require authentication via `AuthGuard`. The following are protected: `/auth/me`, `/auth/logout`, all `/github/*`, all `/projects/*`, and `POST /deployment`.
 
 ---
 
@@ -98,12 +108,15 @@ All endpoints except `/`, `/auth/github`, and `/auth/callback` require authentic
 ### 1. Root Endpoint
 
 #### `GET /`
+
 **Description**: Health check endpoint  
 **Authentication**: Not required  
-**Response**: 
+**Response**:
+
 ```json
 "Hello World!"
 ```
+
 **Status Code**: `200 OK`
 
 **Usage**: Simple health check to verify the API is running.
@@ -113,23 +126,27 @@ All endpoints except `/`, `/auth/github`, and `/auth/callback` require authentic
 ### 2. Authentication Endpoints
 
 #### `GET /auth/github`
+
 **Description**: Initiates GitHub OAuth flow  
 **Authentication**: Not required  
 **Request**: No body or query parameters  
 **Response**: HTTP 302 Redirect to GitHub OAuth page
 
 **GitHub OAuth URL Format**:
+
 ```
 https://github.com/login/oauth/authorize?client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=user%20repo
 ```
 
 **Frontend Implementation**:
+
 ```javascript
 // Simply redirect user to this endpoint
 window.location.href = 'http://localhost:3000/auth/github';
 ```
 
 **Notes**:
+
 - Requires `CLIENT_ID` and `REDIRECT_URI` environment variables
 - Scope includes `user` and `repo` permissions
 - User will be redirected to GitHub login page
@@ -137,12 +154,15 @@ window.location.href = 'http://localhost:3000/auth/github';
 ---
 
 #### `GET /auth/callback`
+
 **Description**: GitHub OAuth callback handler  
 **Authentication**: Not required  
 **Query Parameters**:
+
 - `code` (string, required): Authorization code from GitHub
 
 **Request Example**:
+
 ```
 GET /auth/callback?code=abc123def456
 ```
@@ -150,6 +170,7 @@ GET /auth/callback?code=abc123def456
 **Response**: HTTP 302 Redirect to frontend URL
 
 **Process**:
+
 1. Backend exchanges `code` for access token
 2. Fetches user info from GitHub API
 3. Creates or updates user in database
@@ -158,25 +179,106 @@ GET /auth/callback?code=abc123def456
 6. Redirects to `FRONTEND_URL` (default: `http://localhost:5173`)
 
 **Frontend Implementation**:
+
 - This endpoint is called automatically by GitHub
 - No frontend code needed, but frontend should handle the redirect
 - After redirect, user is authenticated (cookie is set)
 
 **Error Handling**:
+
 - If code is invalid or expired, GitHub will show error
 - Backend will handle token exchange failures
+
+---
+
+#### `GET /auth/me`
+
+**Description**: Returns the current authenticated user's profile  
+**Authentication**: Required (JWT cookie)  
+**Request**: No body or query parameters  
+**Response**: User object from database
+
+**Response Example**:
+
+```json
+{
+  "id": 1,
+  "githubId": "12345",
+  "username": "octocat",
+  "createdAt": "2024-01-01T00:00:00.000Z"
+}
+```
+
+**Status Codes**:
+
+- `200 OK`: Success
+- `401 Unauthorized`: No JWT token or invalid token
+
+**Frontend Implementation**:
+
+```javascript
+// Check auth or get current user
+const response = await fetch('http://localhost:3000/auth/me', {
+  method: 'GET',
+  credentials: 'include',
+});
+if (response.ok) {
+  const user = await response.json();
+  // Use user profile (e.g. display username)
+}
+```
+
+---
+
+#### `POST /auth/logout`
+
+**Description**: Logs out the current user and clears the JWT cookie  
+**Authentication**: Required (JWT cookie)  
+**Request**: No body or query parameters  
+**Response**:
+
+```json
+{
+  "msg": "logged out successfully"
+}
+```
+
+**Status Codes**:
+
+- `200 OK`: Logged out successfully
+- `401 Unauthorized`: No JWT token or invalid token
+
+**Frontend Implementation**:
+
+```javascript
+const response = await fetch('http://localhost:3000/auth/logout', {
+  method: 'POST',
+  credentials: 'include',
+});
+if (response.ok) {
+  // Cookie cleared by server; redirect to login
+  window.location.href = '/login';
+}
+```
+
+**Notes**:
+
+- Server clears the `jwt` HTTP-only cookie
+- After logout, subsequent requests will return 401 until user logs in again
 
 ---
 
 ### 3. GitHub Integration Endpoints
 
 #### `GET /github/repos`
+
 **Description**: Fetches all repositories for the authenticated user  
 **Authentication**: Required (JWT cookie)  
 **Request**: No body or query parameters  
 **Response**: Array of GitHub repository objects
 
 **Response Example**:
+
 ```json
 [
   {
@@ -205,11 +307,13 @@ GET /auth/callback?code=abc123def456
 ```
 
 **Status Codes**:
+
 - `200 OK`: Success
 - `401 Unauthorized`: No JWT token or invalid token
 - `404 Not Found`: Could not fetch repositories (GitHub API error)
 
 **Frontend Implementation**:
+
 ```javascript
 // Fetch repositories
 const response = await fetch('http://localhost:3000/github/repos', {
@@ -230,6 +334,7 @@ if (response.ok) {
 ```
 
 **Notes**:
+
 - Returns repositories from GitHub API directly
 - Includes all standard GitHub repository fields
 - Only returns repos accessible to authenticated user
@@ -238,13 +343,16 @@ if (response.ok) {
 ---
 
 #### `GET /github/repos/:owner/:repo/branches`
+
 **Description**: Fetches all branches for a specific repository  
 **Authentication**: Required (JWT cookie)  
 **Path Parameters**:
+
 - `owner` (string, required): Repository owner username
 - `repo` (string, required): Repository name
 
 **Request Example**:
+
 ```
 GET /github/repos/username/my-repo/branches
 ```
@@ -252,6 +360,7 @@ GET /github/repos/username/my-repo/branches
 **Response**: Array of branch objects
 
 **Response Example**:
+
 ```json
 [
   {
@@ -270,15 +379,18 @@ GET /github/repos/username/my-repo/branches
 ```
 
 **Response Fields**:
+
 - `name` (string): Branch name
 - `sha` (string): Latest commit SHA for the branch
 
 **Status Codes**:
+
 - `200 OK`: Success
 - `401 Unauthorized`: No JWT token or invalid token
 - `404 Not Found`: Repository not found or could not fetch branches
 
 **Frontend Implementation**:
+
 ```javascript
 // Fetch branches for a repository
 const owner = 'username';
@@ -291,7 +403,7 @@ const response = await fetch(
     headers: {
       'Content-Type': 'application/json',
     },
-  }
+  },
 );
 
 if (response.ok) {
@@ -304,6 +416,7 @@ if (response.ok) {
 ```
 
 **Notes**:
+
 - Owner and repo names are case-sensitive
 - Returns simplified branch data (name and SHA only)
 - Requires user to have access to the repository
@@ -311,12 +424,128 @@ if (response.ok) {
 
 ---
 
-### 4. Deployment Endpoints
+### 4. Projects Endpoints
+
+#### `GET /projects`
+
+**Description**: Fetches all projects for the authenticated user  
+**Authentication**: Required (JWT cookie)  
+**Request**: No body or query parameters  
+**Response**: Array of project objects
+
+**Response Example**:
+
+```json
+[
+  {
+    "id": 1,
+    "name": "my-project",
+    "user_id": 1,
+    "repoUrl": "https://github.com/username/my-repo",
+    "url": "my-project",
+    "type": "REACT",
+    "status": "CREATED",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-02T00:00:00.000Z"
+  }
+]
+```
+
+**Status Codes**:
+
+- `200 OK`: Success
+- `401 Unauthorized`: No JWT token or invalid token
+- `404 Not Found`: Could not fetch projects (e.g. database error)
+
+**Frontend Implementation**:
+
+```javascript
+const response = await fetch('http://localhost:3000/projects', {
+  method: 'GET',
+  credentials: 'include',
+});
+if (response.ok) {
+  const projects = await response.json();
+  // Display project list (e.g. dashboard)
+}
+```
+
+**Notes**:
+
+- Returns only projects belonging to the authenticated user
+- Each project has a unique `name` per user and a unique `url` (subdomain)
+
+---
+
+#### `GET /projects/:id/deployments`
+
+**Description**: Fetches all deployments for a specific project  
+**Authentication**: Required (JWT cookie)  
+**Path Parameters**:
+
+- `id` (number, required): Project ID
+
+**Request Example**:
+
+```
+GET /projects/1/deployments
+```
+
+**Response**: Array of deployment objects
+
+**Response Example**:
+
+```json
+[
+  {
+    "id": 1,
+    "status": "READY",
+    "commitHash": "abc123def456...",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-02T00:00:00.000Z",
+    "project_id": 1
+  }
+]
+```
+
+**Status Codes**:
+
+- `200 OK`: Success
+- `401 Unauthorized`: No JWT token or invalid token
+- `404 Not Found`: Could not fetch deployments (e.g. invalid project or database error)
+
+**Frontend Implementation**:
+
+```javascript
+const projectId = 1;
+const response = await fetch(
+  `http://localhost:3000/projects/${projectId}/deployments`,
+  {
+    method: 'GET',
+    credentials: 'include',
+  },
+);
+if (response.ok) {
+  const deployments = await response.json();
+  // Show deployment history / status for the project
+}
+```
+
+**Notes**:
+
+- Returns deployments for the given project; access is scoped by authenticated user (project must belong to user)
+- Use for deployment history and status polling per project
+
+---
+
+### 5. Deployment Endpoints
 
 #### `POST /deployment`
+
 **Description**: Creates a new deployment job  
 **Authentication**: Required (JWT cookie)  
 **Request Body**:
+
 ```json
 {
   "name": "my-project",
@@ -324,11 +553,13 @@ if (response.ok) {
   "branch": "main",
   "type": "REACT",
   "commitHash": "abc123def456...",
-  "buildCommand": "npm run build"
+  "buildCommand": "npm run build",
+  "url": "vis"
 }
 ```
 
 **Request Body Fields**:
+
 - `name` (string, required): Project name (unique per user)
 - `repoUrl` (string, required): Full GitHub repository URL
 - `branch` (string, required): Branch name to deploy
@@ -337,6 +568,7 @@ if (response.ok) {
 - `buildCommand` (string, optional): Custom build command (e.g., `"npm run build"`, `"yarn build"`)
 
 **Response**:
+
 ```json
 {
   "deploymentId": 123,
@@ -345,16 +577,19 @@ if (response.ok) {
 ```
 
 **Response Fields**:
+
 - `deploymentId` (number): Unique deployment ID
 - `status` (string): Initial deployment status (`"QUEUED"`)
 
 **Status Codes**:
+
 - `200 OK`: Deployment queued successfully
 - `400 Bad Request`: Missing required fields
 - `401 Unauthorized`: No JWT token or invalid token
 - `500 Internal Server Error`: Failed to queue deployment
 
 **Frontend Implementation**:
+
 ```javascript
 // Create a new deployment
 const deploymentData = {
@@ -390,10 +625,12 @@ if (response.ok) {
 ```
 
 **Project Type Values**:
+
 - `"STATIC"`: Static HTML/CSS/JS website
 - `"REACT"`: React application (requires build step)
 
 **Notes**:
+
 - Project name must be unique per user
 - If project with same name exists, it will be updated (upsert)
 - Deployment is processed asynchronously via job queue
@@ -401,6 +638,7 @@ if (response.ok) {
 - If deployment fails to queue, status is set to `"FAIL"`
 
 **Deployment Status Flow**:
+
 1. `QUEUED` - Initial status when added to queue
 2. `IN_PROGRESS` - Deployment is being processed
 3. `READY` - Deployment completed successfully
@@ -411,67 +649,73 @@ if (response.ok) {
 ## Data Models
 
 ### User Model
+
 ```typescript
 {
-  id: number;              // Auto-increment primary key
-  githubId: string;        // GitHub user ID (unique)
-  username: string;        // GitHub username
-  createdAt: Date;         // Account creation timestamp
+  id: number; // Auto-increment primary key
+  githubId: string; // GitHub user ID (unique)
+  username: string; // GitHub username
+  createdAt: Date; // Account creation timestamp
 }
 ```
 
 ### Project Model
+
 ```typescript
 {
-  id: number;              // Auto-increment primary key
-  name: string;            // Project name (unique per user)
-  user_id: number;         // Foreign key to User
-  repoUrl: string;         // GitHub repository URL (unique)
-  url: string;             // Deployment URL (unique, auto-generated)
-  type: "STATIC" | "REACT"; // Project type
-  status: string;          // Project status (default: "CREATED")
-  createdAt: Date;         // Creation timestamp
-  updatedAt: Date;         // Last update timestamp
+  id: number; // Auto-increment primary key
+  name: string; // Project name (unique per user)
+  user_id: number; // Foreign key to User
+  repoUrl: string; // GitHub repository URL (unique)
+  url: string; // Deployment URL (unique, auto-generated)
+  type: 'STATIC' | 'REACT'; // Project type
+  status: string; // Project status (default: "CREATED")
+  createdAt: Date; // Creation timestamp
+  updatedAt: Date; // Last update timestamp
 }
 ```
 
 ### Deployment Model
+
 ```typescript
 {
-  id: number;              // Auto-increment primary key
+  id: number; // Auto-increment primary key
   status: DeploymentStatus; // Deployment status
   commitHash: string | null; // Git commit SHA (optional)
-  project_id: number;      // Foreign key to Project
-  createdAt: Date;         // Creation timestamp
-  updatedAt: Date;         // Last update timestamp
+  project_id: number; // Foreign key to Project
+  createdAt: Date; // Creation timestamp
+  updatedAt: Date; // Last update timestamp
 }
 ```
 
 ### DeploymentStatus Enum
+
 ```typescript
 enum DeploymentStatus {
-  NOT_STARTED = "NOT_STARTED",
-  QUEUED = "QUEUED",
-  IN_PROGRESS = "IN_PROGRESS",
-  READY = "READY",
-  FAIL = "FAIL"
+  NOT_STARTED = 'NOT_STARTED',
+  QUEUED = 'QUEUED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  READY = 'READY',
+  FAIL = 'FAIL',
 }
 ```
 
 ### ProjectType Enum
+
 ```typescript
 enum ProjectType {
-  STATIC = "STATIC",
-  REACT = "REACT"
+  STATIC = 'STATIC',
+  REACT = 'REACT',
 }
 ```
 
 ### JWT Payload
+
 ```typescript
 {
-  id: number;              // User ID
-  githubId: string;        // GitHub user ID
-  githubUsername: string;  // GitHub username
+  id: number; // User ID
+  githubId: string; // GitHub user ID
+  githubUsername: string; // GitHub username
 }
 ```
 
@@ -482,17 +726,21 @@ enum ProjectType {
 ### Standard HTTP Status Codes
 
 **2xx Success**:
+
 - `200 OK`: Request successful
 
 **4xx Client Errors**:
+
 - `400 Bad Request`: Invalid request data
 - `401 Unauthorized`: Missing or invalid authentication token
 - `404 Not Found`: Resource not found (repository, branch, etc.)
 
 **5xx Server Errors**:
+
 - `500 Internal Server Error`: Server-side error
 
 ### Error Response Format
+
 Most errors return standard HTTP status codes. Some may include error messages in the response body:
 
 ```json
@@ -505,23 +753,27 @@ Most errors return standard HTTP status codes. Some may include error messages i
 ### Common Error Scenarios
 
 **1. Unauthenticated Request**
+
 - **Status**: `401 Unauthorized`
 - **Cause**: Missing JWT cookie or invalid token
 - **Frontend Action**: Redirect to `/auth/github`
 
 **2. GitHub Account Not Linked**
+
 - **Status**: `401 Unauthorized`
 - **Message**: "GitHub account not linked"
 - **Cause**: User exists but GitHub auth token is missing
 - **Frontend Action**: Prompt user to re-authenticate
 
 **3. Repository Not Found**
+
 - **Status**: `404 Not Found`
 - **Message**: "Could not fetch Github repositories" or "Could not fetch branches"
 - **Cause**: Repository doesn't exist or user doesn't have access
 - **Frontend Action**: Show error message, allow user to retry
 
 **4. Deployment Queue Failure**
+
 - **Status**: `500 Internal Server Error`
 - **Cause**: Failed to add job to queue or database error
 - **Frontend Action**: Show error message, allow user to retry
@@ -533,6 +785,7 @@ Most errors return standard HTTP status codes. Some may include error messages i
 ### 1. Setup and Configuration
 
 **Base API URL**:
+
 ```javascript
 const API_BASE_URL = 'http://localhost:3000';
 // In production, use your production API URL
@@ -540,6 +793,7 @@ const API_BASE_URL = 'http://localhost:3000';
 
 **Fetch Configuration**:
 Always include `credentials: 'include'` to send cookies:
+
 ```javascript
 const fetchOptions = {
   credentials: 'include', // Critical for cookie-based auth
@@ -552,6 +806,7 @@ const fetchOptions = {
 ### 2. Authentication Flow Implementation
 
 **Login Button Handler**:
+
 ```javascript
 const handleLogin = () => {
   // Simply redirect to auth endpoint
@@ -560,31 +815,35 @@ const handleLogin = () => {
 ```
 
 **Check Authentication Status**:
+
 ```javascript
+// Option 1: Use /auth/me to get current user (or verify auth)
 const checkAuth = async () => {
   try {
-    // Try to fetch a protected endpoint
-    const response = await fetch(`${API_BASE_URL}/github/repos`, {
+    const response = await fetch(`${API_BASE_URL}/auth/me`, {
       credentials: 'include',
     });
-    
-    if (response.status === 401) {
-      return false; // Not authenticated
-    }
-    return response.ok; // Authenticated
+    if (response.status === 401) return null;
+    if (response.ok) return await response.json(); // User object
+    return null;
   } catch (error) {
-    return false;
+    return null;
   }
 };
+
+// Option 2: Try any protected endpoint (e.g. /github/repos)
+// if (response.status === 401) → not authenticated
 ```
 
 **Logout Handler**:
+
 ```javascript
-const handleLogout = () => {
-  // Since cookie is HTTP-only, frontend can't delete it directly
-  // Option 1: Call a logout endpoint (if implemented)
-  // Option 2: Clear frontend state and redirect to login
-  // Cookie will expire naturally or be cleared by browser
+const handleLogout = async () => {
+  await fetch(`${API_BASE_URL}/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  // Server clears jwt cookie; redirect to login
   window.location.href = '/login';
 };
 ```
@@ -592,23 +851,24 @@ const handleLogout = () => {
 ### 3. Repository Selection Flow
 
 **Step 1: Fetch User Repositories**
+
 ```javascript
 const fetchRepositories = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/github/repos`, {
       credentials: 'include',
     });
-    
+
     if (response.status === 401) {
       // Redirect to login
       window.location.href = `${API_BASE_URL}/auth/github`;
       return;
     }
-    
+
     if (!response.ok) {
       throw new Error('Failed to fetch repositories');
     }
-    
+
     const repos = await response.json();
     return repos;
   } catch (error) {
@@ -619,6 +879,7 @@ const fetchRepositories = async () => {
 ```
 
 **Step 2: Fetch Branches for Selected Repository**
+
 ```javascript
 const fetchBranches = async (owner, repo) => {
   try {
@@ -626,18 +887,18 @@ const fetchBranches = async (owner, repo) => {
       `${API_BASE_URL}/github/repos/${owner}/${repo}/branches`,
       {
         credentials: 'include',
-      }
+      },
     );
-    
+
     if (response.status === 401) {
       window.location.href = `${API_BASE_URL}/auth/github`;
       return;
     }
-    
+
     if (!response.ok) {
       throw new Error('Failed to fetch branches');
     }
-    
+
     const branches = await response.json();
     return branches;
   } catch (error) {
@@ -648,6 +909,7 @@ const fetchBranches = async (owner, repo) => {
 ```
 
 **UI Flow Example**:
+
 1. User clicks "Select Repository"
 2. Show loading state
 3. Fetch and display repositories
@@ -660,6 +922,7 @@ const fetchBranches = async (owner, repo) => {
 ### 4. Deployment Creation Flow
 
 **Create Deployment**:
+
 ```javascript
 const createDeployment = async (deploymentData) => {
   try {
@@ -678,17 +941,17 @@ const createDeployment = async (deploymentData) => {
         buildCommand: deploymentData.buildCommand, // Optional
       }),
     });
-    
+
     if (response.status === 401) {
       window.location.href = `${API_BASE_URL}/auth/github`;
       return;
     }
-    
+
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || 'Failed to create deployment');
     }
-    
+
     const result = await response.json();
     return result;
   } catch (error) {
@@ -699,11 +962,12 @@ const createDeployment = async (deploymentData) => {
 ```
 
 **Example Usage**:
+
 ```javascript
 const handleDeploy = async () => {
   try {
     setLoading(true);
-    
+
     const result = await createDeployment({
       name: 'my-project',
       repoUrl: selectedRepo.html_url,
@@ -712,10 +976,10 @@ const handleDeploy = async () => {
       commitHash: selectedBranch.sha,
       buildCommand: 'npm run build',
     });
-    
+
     // Show success message
     alert(`Deployment queued! ID: ${result.deploymentId}`);
-    
+
     // Navigate to deployment status page
     navigate(`/deployments/${result.deploymentId}`);
   } catch (error) {
@@ -729,25 +993,31 @@ const handleDeploy = async () => {
 ### 5. Recommended UI Components
 
 **1. Login Page**
+
 - "Login with GitHub" button
 - Redirects to `/auth/github`
 
 **2. Dashboard**
-- List of user's projects
+
+- List of user's projects via `GET /projects`
 - "New Deployment" button
 - Project status indicators
+- Per-project deployment history via `GET /projects/:id/deployments`
 
 **3. Repository Selector**
+
 - Dropdown/searchable list of repositories
 - Loading state while fetching
 - Error handling for failed requests
 
 **4. Branch Selector**
+
 - Dropdown of branches for selected repository
 - Shows commit SHA for each branch
 - Optional: commit selector
 
 **5. Deployment Form**
+
 - Project name input
 - Repository selector (from step 3)
 - Branch selector (from step 4)
@@ -756,6 +1026,7 @@ const handleDeploy = async () => {
 - Submit button
 
 **6. Deployment Status Page**
+
 - Deployment ID
 - Current status
 - Project information
@@ -765,10 +1036,11 @@ const handleDeploy = async () => {
 ### 6. State Management Recommendations
 
 **Authentication State**:
+
 ```javascript
 // Check auth on app load
 useEffect(() => {
-  checkAuth().then(isAuthenticated => {
+  checkAuth().then((isAuthenticated) => {
     setAuthenticated(isAuthenticated);
     if (!isAuthenticated) {
       navigate('/login');
@@ -778,6 +1050,7 @@ useEffect(() => {
 ```
 
 **Repository State**:
+
 ```javascript
 const [repositories, setRepositories] = useState([]);
 const [selectedRepo, setSelectedRepo] = useState(null);
@@ -786,6 +1059,7 @@ const [selectedBranch, setSelectedBranch] = useState(null);
 ```
 
 **Deployment State**:
+
 ```javascript
 const [deployments, setDeployments] = useState([]);
 const [loading, setLoading] = useState(false);
@@ -795,6 +1069,7 @@ const [error, setError] = useState(null);
 ### 7. Error Handling Best Practices
 
 **Global Error Handler**:
+
 ```javascript
 const handleApiError = (error, response) => {
   if (response?.status === 401) {
@@ -802,17 +1077,17 @@ const handleApiError = (error, response) => {
     window.location.href = `${API_BASE_URL}/auth/github`;
     return;
   }
-  
+
   if (response?.status === 404) {
     // Not found - show user-friendly message
     return 'Resource not found. Please check your selection.';
   }
-  
+
   if (response?.status >= 500) {
     // Server error - show generic error
     return 'Server error. Please try again later.';
   }
-  
+
   return error.message || 'An error occurred';
 };
 ```
@@ -820,6 +1095,7 @@ const handleApiError = (error, response) => {
 ### 8. CORS and Cookie Handling
 
 **Important Notes**:
+
 - Backend has CORS enabled with `credentials: true`
 - Frontend must use `credentials: 'include'` in all fetch requests
 - Cookies are HTTP-only, so JavaScript cannot access them directly
@@ -827,6 +1103,7 @@ const handleApiError = (error, response) => {
 - For cross-origin requests, ensure proper CORS configuration
 
 **Development Setup**:
+
 - Backend: `http://localhost:3000`
 - Frontend: `http://localhost:5173` (or your dev server port)
 - Ensure both are running and CORS is properly configured
@@ -840,6 +1117,7 @@ const handleApiError = (error, response) => {
 The backend requires the following environment variables (see `confSample.txt` for reference):
 
 **Required Variables**:
+
 - `CLIENT_ID`: GitHub OAuth App Client ID
 - `CLIENT_SECRET`: GitHub OAuth App Client Secret
 - `REDIRECT_URI`: OAuth callback URL (e.g., `http://localhost:3000/auth/callback`)
@@ -849,6 +1127,7 @@ The backend requires the following environment variables (see `confSample.txt` f
 - `PORT`: Server port (default: 3000)
 
 **Optional Variables**:
+
 - `REDIS_HOST`: Redis host for BullMQ (default: localhost)
 - `REDIS_PORT`: Redis port for BullMQ (default: 6379)
 
@@ -880,18 +1159,21 @@ The backend requires the following environment variables (see `confSample.txt` f
 ## Additional Notes
 
 ### Project URL Generation
+
 - Project URLs are auto-generated from project name
 - Format: `{project-name}` (used as subdomain)
 - Example: Project named "my-app" gets URL "my-app"
 - Full URL depends on nginx configuration (e.g., `my-app.localhost`)
 
 ### Deployment Processing
+
 - Deployments are processed asynchronously via BullMQ
 - Jobs are retried up to 3 times on failure
 - Status updates happen in the background
 - Frontend should poll or use WebSocket (if implemented) for status updates
 
 ### Security Considerations
+
 - JWT tokens are stored in HTTP-only cookies (XSS protection)
 - Cookies use `SameSite: lax` (CSRF protection)
 - In production, set `secure: true` for HTTPS
@@ -899,15 +1181,14 @@ The backend requires the following environment variables (see `confSample.txt` f
 - All protected endpoints require valid JWT
 
 ### Rate Limiting
+
 - Currently no rate limiting implemented
 - Consider adding rate limiting for production
 - GitHub API has its own rate limits
 
 ### Future Enhancements (Not Currently Implemented)
-- Deployment status polling endpoint
-- Project listing endpoint
-- Deployment history endpoint
-- WebSocket for real-time status updates
+
+- WebSocket for real-time deployment status updates
 - Log streaming endpoint
 - Project deletion endpoint
 - Deployment cancellation endpoint
@@ -917,13 +1198,15 @@ The backend requires the following environment variables (see `confSample.txt` f
 ## Summary
 
 This API provides a complete deployment platform with:
-- **5 main endpoints**: Root, 2 auth endpoints, 2 GitHub endpoints, 1 deployment endpoint
+
+- **9 main endpoints**: Root; auth (github, callback, me, logout); GitHub (repos, branches); projects (list, deployments); deployment (create)
 - **Cookie-based authentication**: Secure, HTTP-only JWT storage
 - **GitHub integration**: Repository and branch listing
 - **Async deployments**: Queue-based deployment processing
 - **Two project types**: Static sites and React applications
 
 The frontend should implement:
+
 1. Login flow with GitHub OAuth
 2. Repository and branch selection
 3. Deployment creation form
@@ -931,4 +1214,3 @@ The frontend should implement:
 5. Error handling and user feedback
 
 All requests to protected endpoints must include `credentials: 'include'` to send the authentication cookie automatically.
-
