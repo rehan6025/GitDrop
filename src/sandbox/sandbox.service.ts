@@ -28,6 +28,24 @@ export class SandboxService {
       buildCommand,
       url,
     } = jobData;
+
+    await this.prisma.deployments.update({
+      where: {
+        id: deploymentId,
+      },
+      data: {
+        status: 'IN_PROGRESS',
+      },
+    });
+    await this.prisma.projects.update({
+      where: {
+        id: projectId,
+      },
+      data: {
+        status: 'IN_PROGRESS',
+      },
+    });
+
     await this.cleanupState(deploymentId);
 
     const baseDir = 'C:/Users/Rehan/Desktop/backup_coding/Projects/deployments';

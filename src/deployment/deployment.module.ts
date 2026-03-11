@@ -5,6 +5,7 @@ import { AuthModule } from '../auth/auth.module.js';
 import { BullModule } from '@nestjs/bullmq';
 import { DeploymentProcessor } from './deployment.processor.js';
 import { SandboxModule } from '../sandbox/sandbox.module.js';
+import { DeploymentGateway } from './deployment.gateway.js';
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { SandboxModule } from '../sandbox/sandbox.module.js';
       },
     }),
   ],
-  providers: [DeploymentService, DeploymentProcessor],
+  providers: [DeploymentService, DeploymentProcessor, DeploymentGateway],
   controllers: [DeploymentController],
+  exports: [DeploymentGateway],
 })
 export class DeploymentModule {}

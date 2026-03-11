@@ -27,11 +27,21 @@ export class DeploymentProcessor extends WorkerHost {
       where: { id: job.data.deploymentId },
       data: { status: 'READY' },
     });
+
+    await this.prisma.projects.update({
+      where: { id: job.data.projectId },
+      data: { status: 'READY' },
+    });
   }
 
   async markFailed(job: Job): Promise<any> {
     await this.prisma.deployments.update({
       where: { id: job.data.deploymentId },
+      data: { status: 'FAIL' },
+    });
+
+    await this.prisma.projects.update({
+      where: { id: job.data.projectId },
       data: { status: 'FAIL' },
     });
   }

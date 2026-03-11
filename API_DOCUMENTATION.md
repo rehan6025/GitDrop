@@ -48,7 +48,7 @@ The backend is built with **NestJS** (Node.js framework), uses **PostgreSQL** wi
 ### Base URL
 
 - **Development**: `http://localhost:3000`
-- **Production**: Configure via `PORT` environment variable
+- **Production**: Configure via `PORT` environment variable (defaults to `3000`)
 
 ---
 
@@ -310,7 +310,7 @@ if (response.ok) {
 
 - `200 OK`: Success
 - `401 Unauthorized`: No JWT token or invalid token
-- `404 Not Found`: Could not fetch repositories (GitHub API error)
+- `500 Internal Server Error`: GitHub API error / token issues (current implementation throws generic errors)
 
 **Frontend Implementation**:
 
@@ -387,7 +387,7 @@ GET /github/repos/username/my-repo/branches
 
 - `200 OK`: Success
 - `401 Unauthorized`: No JWT token or invalid token
-- `404 Not Found`: Repository not found or could not fetch branches
+- `500 Internal Server Error`: GitHub API error / token issues (current implementation throws generic errors)
 
 **Frontend Implementation**:
 
@@ -533,7 +533,7 @@ if (response.ok) {
 
 **Notes**:
 
-- Returns deployments for the given project; access is scoped by authenticated user (project must belong to user)
+- **Current behavior**: Returns deployments for the given project ID without enforcing project ownership in the service layer. If you need strict multi-tenant isolation, add a user/project ownership check before returning deployments.
 - Use for deployment history and status polling per project
 
 ---
@@ -554,7 +554,7 @@ if (response.ok) {
   "type": "REACT",
   "commitHash": "abc123def456...",
   "buildCommand": "npm run build",
-  "url": "vis"
+  "url": "my-project"
 }
 ```
 
@@ -566,6 +566,7 @@ if (response.ok) {
 - `type` (string, required): Project type - either `"STATIC"` or `"REACT"`
 - `commitHash` (string, optional): Specific commit SHA to deploy
 - `buildCommand` (string, optional): Custom build command (e.g., `"npm run build"`, `"yarn build"`)
+- `url` (string, required): Project URL/subdomain slug (must be globally unique)
 
 **Response**:
 
@@ -634,7 +635,8 @@ if (response.ok) {
 - Project name must be unique per user
 - If project with same name exists, it will be updated (upsert)
 - Deployment is processed asynchronously via job queue
-- Project URL is auto-generated from project name
+- **Current behavior**: Project URL is taken from the request body (`url`) and stored as `Projects.url`. The backend does not currently auto-generate it.
+- **Current behavior**: The `branch` is used for the build job payload, but is not persisted to the `Projects.branch` field during upsert.
 - If deployment fails to queue, status is set to `"FAIL"`
 
 **Deployment Status Flow**:
@@ -659,6 +661,19 @@ if (response.ok) {
 }
 ```
 
+### GithubAuth Model
+
+```typescript
+{
+  id: number; // Auto-increment primary key
+  userId: number; // Foreign key to User (unique, 1:1)
+  accessToken: string; // GitHub OAuth access token
+  scope: string | null; // Optional OAuth scope string
+  lastLoginAt: Date; // Defaults to now(), updated on login
+  createdAt: Date; // Record creation timestamp
+}
+```
+
 ### Project Model
 
 ```typescript
@@ -666,8 +681,9 @@ if (response.ok) {
   id: number; // Auto-increment primary key
   name: string; // Project name (unique per user)
   user_id: number; // Foreign key to User
-  repoUrl: string; // GitHub repository URL (unique)
-  url: string; // Deployment URL (unique, auto-generated)
+  repoUrl: string; // GitHub repository URL
+  url: string; // Project URL/subdomain slug (globally unique)
+  branch: string; // Default "main" (note: not currently updated by deployment upsert)
   type: 'STATIC' | 'REACT'; // Project type
   status: string; // Project status (default: "CREATED")
   createdAt: Date; // Creation timestamp
@@ -767,9 +783,8 @@ Most errors return standard HTTP status codes. Some may include error messages i
 
 **3. Repository Not Found**
 
-- **Status**: `404 Not Found`
-- **Message**: "Could not fetch Github repositories" or "Could not fetch branches"
-- **Cause**: Repository doesn't exist or user doesn't have access
+- **Status**: Typically `500 Internal Server Error` (current GitHub service throws generic errors)
+- **Cause**: Repository doesn't exist, user doesn't have access, rate limiting, or GitHub token issues
 - **Frontend Action**: Show error message, allow user to retry
 
 **4. Deployment Queue Failure**
@@ -1128,8 +1143,13 @@ The backend requires the following environment variables (see `confSample.txt` f
 
 **Optional Variables**:
 
-- `REDIS_HOST`: Redis host for BullMQ (default: localhost)
-- `REDIS_PORT`: Redis port for BullMQ (default: 6379)
+- `REDIS_HOST`: Redis host for BullMQ (**not currently used**; connection is hardcoded)
+- `REDIS_PORT`: Redis port for BullMQ (**not currently used**; connection is hardcoded)
+
+**BullMQ / Redis Connection (Current Implementation)**:
+
+- Host: `localhost`
+- Port: `6379`
 
 ### GitHub OAuth App Setup
 
@@ -1160,9 +1180,9 @@ The backend requires the following environment variables (see `confSample.txt` f
 
 ### Project URL Generation
 
-- Project URLs are auto-generated from project name
-- Format: `{project-name}` (used as subdomain)
-- Example: Project named "my-app" gets URL "my-app"
+- **Current behavior**: Project URLs are provided by the client as `url` in `POST /deployment` and stored as `Projects.url`.
+- **Recommended convention**: Use a slug of the project name (e.g., `my-app`) as the subdomain.
+- **Example**: Project named "my app" → slug `my-app`
 - Full URL depends on nginx configuration (e.g., `my-app.localhost`)
 
 ### Deployment Processing

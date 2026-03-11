@@ -35,6 +35,7 @@ export class DeploymentService {
         repoUrl,
         url,
         type,
+        status: 'IN_PROGRESS',
       },
       create: {
         name,
