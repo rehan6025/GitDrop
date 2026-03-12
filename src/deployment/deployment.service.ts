@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProjectType } from 'generated/prisma/enums.js';
+import { DeploymentGateway } from './deployment.gateway.js';
 
 @Injectable()
 export class DeploymentService {

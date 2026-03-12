@@ -2,10 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { spawn } from 'child_process';
 import { rm, mkdir } from 'fs/promises';
 import { PrismaService } from '../prisma/prisma.service.js';
-
+import { DeploymentGateway } from '../deployment/deployment.gateway.js';
 @Injectable()
 export class SandboxService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private gateway: DeploymentGateway,
+  ) {}
 
   async cleanupState(deploymentId: string) {
     await new Promise<void>((res) => {
@@ -94,11 +97,22 @@ export class SandboxService {
       ]);
 
       proc.stdout.on('data', (data) => {
-        console.log(`[${deploymentId}]`, data.toString());
+        const log = data.toString();
+
+        console.log(`[${deploymentId}]`, log);
+        this.gateway.sendDeploymentUpdate(deploymentId, {
+          type: 'log',
+          log,
+        });
       });
 
       proc.stderr.on('data', (data) => {
-        console.log(`[${deploymentId}]`, data.toString());
+        const log = data.toString();
+        console.log(`[${deploymentId}]`, log);
+        this.gateway.sendDeploymentUpdate(deploymentId, {
+          type: 'log',
+          log,
+        });
       });
 
       proc.on('close', (code) => {

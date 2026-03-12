@@ -2,18 +2,24 @@ import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SandboxService } from '../sandbox/sandbox.service.js';
+import { DeploymentGateway } from './deployment.gateway.js';
 
 @Processor('build-queue')
 export class DeploymentProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     private sandbox: SandboxService,
+    private gateway: DeploymentGateway,
   ) {
     super();
   }
 
   async process(job: Job): Promise<any> {
     try {
+      this.gateway.sendDeploymentUpdate(job.data.deploymentId, {
+        type: 'log',
+        log: 'Starting deployment...',
+      });
       await this.sandbox.create(job.data);
       await this.markReady(job);
     } catch (error) {
@@ -32,6 +38,14 @@ export class DeploymentProcessor extends WorkerHost {
       where: { id: job.data.projectId },
       data: { status: 'READY' },
     });
+    this.gateway.sendDeploymentUpdate(job.data.deploymentId, {
+      type: 'status',
+      status: 'READY',
+    });
+
+    this.gateway.sendProjectUpdate(job.data.projectId, {
+      status: 'READY',
+    });
   }
 
   async markFailed(job: Job): Promise<any> {
@@ -44,6 +58,15 @@ export class DeploymentProcessor extends WorkerHost {
       where: { id: job.data.projectId },
       data: { status: 'FAIL' },
     });
+
+    this.gateway.sendDeploymentUpdate(job.data.deploymentId, {
+      type: 'status',
+      status: 'FAIL',
+    });
+
+    this.gateway.sendProjectUpdate(job.data.projectId, {
+      status: 'FAIL',
+    });
   }
 
   // @OnWorkerEvent('active')
@@ -54,6 +77,27 @@ export class DeploymentProcessor extends WorkerHost {
   //     data: { status: 'IN_PROGRESS', updatedAt: new Date() },
   //   });
   // }
+  @OnWorkerEvent('active')
+  async onActive(job: Job) {
+    await this.prisma.deployments.update({
+      where: { id: job.data.deploymentId },
+      data: { status: 'IN_PROGRESS', updatedAt: new Date() },
+    });
+
+    await this.prisma.projects.update({
+      where: { id: job.data.projectId },
+      data: { status: 'IN_PROGRESS' },
+    });
+
+    this.gateway.sendDeploymentUpdate(job.data.deploymentId, {
+      type: 'status',
+      status: 'IN_PROGRESS',
+    });
+
+    this.gateway.sendProjectUpdate(job.data.projectId, {
+      status: 'IN_PROGRESS',
+    });
+  }
 
   @OnWorkerEvent('completed')
   async onCompleted(job: Job) {
