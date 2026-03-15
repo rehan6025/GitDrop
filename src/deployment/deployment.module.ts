@@ -5,11 +5,12 @@ import { AuthModule } from '../auth/auth.module.js';
 import { BullModule } from '@nestjs/bullmq';
 import { DeploymentProcessor } from './deployment.processor.js';
 import { SandboxModule } from '../sandbox/sandbox.module.js';
-import { DeploymentGateway } from './deployment.gateway.js';
+import { DeploymentGatewayModule } from './deployment-gateway.module.js';
 
 @Module({
   imports: [
     SandboxModule,
+    DeploymentGatewayModule,
     AuthModule,
     BullModule.registerQueue({
       name: 'build-queue',
@@ -19,8 +20,8 @@ import { DeploymentGateway } from './deployment.gateway.js';
       },
     }),
   ],
-  providers: [DeploymentService, DeploymentProcessor, DeploymentGateway],
+  providers: [DeploymentService, DeploymentProcessor],
   controllers: [DeploymentController],
-  exports: [DeploymentGateway],
+  exports: [],
 })
 export class DeploymentModule {}

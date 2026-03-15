@@ -41,8 +41,6 @@ export class DeploymentGateway
     this.logger.log('Incoming websocket connection');
     client.on('message', (data) => {
       const message = JSON.parse(data.toString());
-      const deploymentId = Number(message.deploymentId);
-      const projectId = Number(message.projectId);
 
       if (message.type === 'subscribe') {
         let subs = this.clientSubscriptions.get(client);
@@ -52,8 +50,14 @@ export class DeploymentGateway
           this.clientSubscriptions.set(client, subs);
         }
 
-        if (deploymentId) {
-          const deploymentId = message.deploymentId;
+        if (message.deploymentId !== undefined) {
+          const deploymentId = Number(message.deploymentId);
+          if (!Number.isFinite(deploymentId)) {
+            this.logger.warn(
+              `Received invalid deploymentId in subscribe message: ${message.deploymentId}`,
+            );
+            return;
+          }
 
           const set =
             this.deploymentSubscriptions.get(deploymentId) ??
@@ -65,8 +69,14 @@ export class DeploymentGateway
           subs.deployments.add(deploymentId);
 
           this.logger.log(`Client subscribed to deployment ${deploymentId}`);
-        } else if (projectId) {
-          const projectId = message.projectId;
+        } else if (message.projectId !== undefined) {
+          const projectId = Number(message.projectId);
+          if (!Number.isFinite(projectId)) {
+            this.logger.warn(
+              `Received invalid projectId in subscribe message: ${message.projectId}`,
+            );
+            return;
+          }
 
           const set =
             this.projectSubscriptions.get(projectId) ?? new Set<WebSocket>();

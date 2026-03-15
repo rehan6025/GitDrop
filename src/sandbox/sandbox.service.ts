@@ -3,6 +3,17 @@ import { spawn } from 'child_process';
 import { rm, mkdir } from 'fs/promises';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DeploymentGateway } from '../deployment/deployment.gateway.js';
+
+interface jobData {
+  deploymentId: number;
+  repoUrl: string;
+  commitHash?: string;
+  branch: string;
+  projectId: number;
+  buildCommand?: string;
+  url: string;
+}
+
 @Injectable()
 export class SandboxService {
   constructor(
@@ -104,6 +115,18 @@ export class SandboxService {
           type: 'log',
           log,
         });
+        this.prisma.deploymentLogs.create({
+          data: {
+            message: 'Cloning repo inside container...',
+            deploymentId: deploymentId,
+          },
+        });
+        this.prisma.deploymentLogs.create({
+          data: {
+            message: 'Mapping files',
+            deploymentId: deploymentId,
+          },
+        });
       });
 
       proc.stderr.on('data', (data) => {
@@ -112,6 +135,12 @@ export class SandboxService {
         this.gateway.sendDeploymentUpdate(deploymentId, {
           type: 'log',
           log,
+        });
+        this.prisma.deploymentLogs.create({
+          data: {
+            message: 'Error : log',
+            deploymentId: deploymentId,
+          },
         });
       });
 

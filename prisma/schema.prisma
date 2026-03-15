@@ -52,10 +52,20 @@ model Deployments {
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @default(now()) @updatedAt
 
-  project    Projects @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  project    Projects         @relation(fields: [project_id], references: [id], onDelete: Cascade)
   project_id Int
+  logs       DeploymentLogs[]
 
   @@index([project_id, commitHash])
+}
+
+model DeploymentLogs {
+  id           Int         @id @default(autoincrement())
+  deploymentId Int
+  deployment   Deployments @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+  message      String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 }
 
 enum ProjectType {

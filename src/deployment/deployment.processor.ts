@@ -20,6 +20,12 @@ export class DeploymentProcessor extends WorkerHost {
         type: 'log',
         log: 'Starting deployment...',
       });
+      await this.prisma.deploymentLogs.create({
+        data: {
+          message: 'Starting deployment...',
+          deploymentId: job.data.deploymentId,
+        },
+      });
       await this.sandbox.create(job.data);
       await this.markReady(job);
     } catch (error) {
@@ -41,6 +47,17 @@ export class DeploymentProcessor extends WorkerHost {
     this.gateway.sendDeploymentUpdate(job.data.deploymentId, {
       type: 'status',
       status: 'READY',
+    });
+
+    this.gateway.sendDeploymentUpdate(job.data.deploymentId, {
+      type: 'log',
+      log: 'Deployment finished successfully',
+    });
+    await this.prisma.deploymentLogs.create({
+      data: {
+        message: 'Deployment finished successfully',
+        deploymentId: job.data.deploymentId,
+      },
     });
 
     this.gateway.sendProjectUpdate(job.data.projectId, {
@@ -92,6 +109,17 @@ export class DeploymentProcessor extends WorkerHost {
     this.gateway.sendDeploymentUpdate(job.data.deploymentId, {
       type: 'status',
       status: 'IN_PROGRESS',
+    });
+
+    this.gateway.sendDeploymentUpdate(job.data.deploymentId, {
+      type: 'log',
+      log: 'Deployment in progress...',
+    });
+    await this.prisma.deploymentLogs.create({
+      data: {
+        message: 'Deployment in progress...',
+        deploymentId: job.data.deploymentId,
+      },
     });
 
     this.gateway.sendProjectUpdate(job.data.projectId, {

@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { SandboxService } from './sandbox.service.js';
-import { DeploymentGateway } from '../deployment/deployment.gateway.js';
+import { DeploymentGatewayModule } from '../deployment/deployment-gateway.module.js';
 
 @Module({
-  providers: [SandboxService, DeploymentGateway],
+  imports: [DeploymentGatewayModule],
+  providers: [SandboxService],
   exports: [SandboxService],
 })
 export class SandboxModule {}

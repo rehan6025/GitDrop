@@ -7,7 +7,6 @@ import { AuthModule } from './auth/auth.module.js';
 import { JwtModule } from '@nestjs/jwt';
 import { DeploymentModule } from './deployment/deployment.module.js';
 import { BullModule } from '@nestjs/bullmq';
-import { SandboxService } from './sandbox/sandbox.service.js';
 import { SandboxModule } from './sandbox/sandbox.module.js';
 import { ProjectsModule } from './projects/projects.module.js';
 import { GithubModule } from './github/github.module.js';
@@ -32,6 +31,6 @@ import { GithubModule } from './github/github.module.js';
     GithubModule,
   ],
   controllers: [AppController],
-  providers: [AppService, SandboxService],
+  providers: [AppService],
 })
 export class AppModule {}

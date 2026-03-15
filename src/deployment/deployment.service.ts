@@ -1,5 +1,5 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProjectType } from 'generated/prisma/enums.js';
@@ -88,5 +88,39 @@ export class DeploymentService {
       });
       throw error;
     }
+  }
+
+  async getDeploymentLogs(deploymentId: number, userId: number) {
+    const deployment = await this.prisma.deployments.findFirst({
+      where: {
+        id: deploymentId,
+        project: {
+          user_id: userId,
+        },
+      },
+      include: { logs: true },
+    });
+
+    if (!deployment) {
+      throw new NotFoundException('Deployment not found');
+    }
+    return deployment.logs;
+  }
+
+  async getStatus(deploymentId: number, userId: number) {
+    const deployment = await this.prisma.deployments.findFirst({
+      where: {
+        id: deploymentId,
+        project: {
+          user_id: userId,
+        },
+      },
+      include: { logs: true },
+    });
+
+    if (!deployment) {
+      throw new NotFoundException('Deployment not found');
+    }
+    return deployment.status;
   }
 }
