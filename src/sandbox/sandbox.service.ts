@@ -107,7 +107,7 @@ export class SandboxService {
         shellCommand,
       ]);
 
-      proc.stdout.on('data', (data) => {
+      proc.stdout.on('data', async (data) => {
         const log = data.toString();
 
         console.log(`[${deploymentId}]`, log);
@@ -115,33 +115,36 @@ export class SandboxService {
           type: 'log',
           log,
         });
-        this.prisma.deploymentLogs.create({
+
+        await this.prisma.deploymentLogs.create({
           data: {
-            message: 'Cloning repo inside container...',
-            deploymentId: deploymentId,
-          },
-        });
-        this.prisma.deploymentLogs.create({
-          data: {
-            message: 'Mapping files',
+            message: log,
             deploymentId: deploymentId,
           },
         });
       });
 
       proc.stderr.on('data', (data) => {
-        const log = data.toString();
+        const log = data.toString().trim();
+
         console.log(`[${deploymentId}]`, log);
+
+        // skip apk install logs
+        if (/^\(\s*\d+\/\d+\)/.test(log)) return;
+
         this.gateway.sendDeploymentUpdate(deploymentId, {
           type: 'log',
           log,
         });
-        this.prisma.deploymentLogs.create({
-          data: {
-            message: 'Error : log',
-            deploymentId: deploymentId,
-          },
-        });
+
+        this.prisma.deploymentLogs
+          .create({
+            data: {
+              message: log,
+              deploymentId,
+            },
+          })
+          .catch(console.error);
       });
 
       proc.on('close', (code) => {
