@@ -3,6 +3,8 @@ import { spawn } from 'child_process';
 import { rm, mkdir } from 'fs/promises';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DeploymentGateway } from '../deployment/deployment.gateway.js';
+import { IBuildStrategy } from './interfaces/build-strategy.interface.js';
+import { BuildStrategyFactory } from './strategies/build-strategy.factory.js';
 
 interface jobData {
   deploymentId: number;
@@ -32,7 +34,7 @@ export class SandboxService {
     });
   }
 
-  async create(jobData: any) {
+  async create(jobData: any, strategy: IBuildStrategy) {
     const {
       deploymentId,
       repoUrl,
@@ -69,31 +71,14 @@ export class SandboxService {
     await rm(outputDir, { recursive: true, force: true });
     await mkdir(outputDir, { recursive: true });
 
-    return new Promise<void>((resolve, reject) => {
-      const shellCommand = `
-        apk add --no-cache git &&
-        mkdir -p /app &&
-        cd /app &&
-        git clone ${repoUrl} repo &&
-        cd repo &&
-        ${
-          commitHash
-            ? `git checkout ${commitHash}`
-            : `git checkout ${branch} && git rev-parse HEAD`
-        } &&
-          ${
-            buildCommand
-              ? `
-        npm install &&
-        ${buildCommand} &&
-        cp -r dist/* /output || cp -r build/* /output
-      `
-              : `
-        cp -r ./* /output
-      `
-          }
-      `;
+    const shellCommand = strategy.getCommand(
+      repoUrl,
+      branch,
+      commitHash,
+      buildCommand,
+    );
 
+    return new Promise<void>((resolve, reject) => {
       const proc = spawn('docker', [
         'run',
         '--rm',

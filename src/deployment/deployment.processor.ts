@@ -3,6 +3,7 @@ import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SandboxService } from '../sandbox/sandbox.service.js';
 import { DeploymentGateway } from './deployment.gateway.js';
+import { BuildStrategyFactory } from '../sandbox/strategies/build-strategy.factory.js';
 
 @Processor('build-queue')
 export class DeploymentProcessor extends WorkerHost {
@@ -10,6 +11,7 @@ export class DeploymentProcessor extends WorkerHost {
     private readonly prisma: PrismaService,
     private sandbox: SandboxService,
     private gateway: DeploymentGateway,
+    private buildStrategyFactory: BuildStrategyFactory,
   ) {
     super();
   }
@@ -26,7 +28,8 @@ export class DeploymentProcessor extends WorkerHost {
           deploymentId: job.data.deploymentId,
         },
       });
-      await this.sandbox.create(job.data);
+      const strategy = this.buildStrategyFactory.getStrategy(job.data.type);
+      await this.sandbox.create(job.data, strategy);
       await this.markReady(job);
     } catch (error) {
       await this.markFailed(job);
