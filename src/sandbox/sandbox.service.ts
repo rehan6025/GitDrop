@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { DeploymentGateway } from '../deployment/deployment.gateway.js';
 import { IBuildStrategy } from './interfaces/build-strategy.interface.js';
 import { BuildStrategyFactory } from './strategies/build-strategy.factory.js';
+import { DeploymentLogger } from './deployment-logger.service.js';
 
 interface jobData {
   deploymentId: number;
@@ -21,6 +22,7 @@ export class SandboxService {
   constructor(
     private readonly prisma: PrismaService,
     private gateway: DeploymentGateway,
+    private logger: DeploymentLogger,
   ) {}
 
   async cleanupState(deploymentId: string) {
@@ -32,6 +34,17 @@ export class SandboxService {
       ]);
       cleanup.on('close', () => res());
     });
+  }
+
+  async prepareDirectories(url: string): Promise<string> {
+    const baseDir = 'C:/Users/Rehan/Desktop/backup_coding/Projects/deployments';
+    const projectDir = `${baseDir}/${url}`;
+    const outputDir = `${projectDir}/current`;
+
+    await rm(outputDir, { recursive: true, force: true });
+    await mkdir(outputDir, { recursive: true });
+
+    return outputDir;
   }
 
   async create(jobData: any, strategy: IBuildStrategy) {
@@ -64,12 +77,7 @@ export class SandboxService {
 
     await this.cleanupState(deploymentId);
 
-    const baseDir = 'C:/Users/Rehan/Desktop/backup_coding/Projects/deployments';
-    const projectDir = `${baseDir}/${url}`;
-    const outputDir = `${projectDir}/current`;
-
-    await rm(outputDir, { recursive: true, force: true });
-    await mkdir(outputDir, { recursive: true });
+    const outputDir = await this.prepareDirectories(url);
 
     const shellCommand = strategy.getCommand(
       repoUrl,
@@ -93,43 +101,11 @@ export class SandboxService {
       ]);
 
       proc.stdout.on('data', async (data) => {
-        const log = data.toString();
-
-        console.log(`[${deploymentId}]`, log);
-        this.gateway.sendDeploymentUpdate(deploymentId, {
-          type: 'log',
-          log,
-        });
-
-        await this.prisma.deploymentLogs.create({
-          data: {
-            message: log,
-            deploymentId: deploymentId,
-          },
-        });
+        this.logger.log(deploymentId, data);
       });
 
       proc.stderr.on('data', (data) => {
-        const log = data.toString().trim();
-
-        console.log(`[${deploymentId}]`, log);
-
-        // skip apk install logs
-        if (/^\(\s*\d+\/\d+\)/.test(log)) return;
-
-        this.gateway.sendDeploymentUpdate(deploymentId, {
-          type: 'log',
-          log,
-        });
-
-        this.prisma.deploymentLogs
-          .create({
-            data: {
-              message: log,
-              deploymentId,
-            },
-          })
-          .catch(console.error);
+        this.logger.log(deploymentId, data);
       });
 
       proc.on('close', (code) => {
