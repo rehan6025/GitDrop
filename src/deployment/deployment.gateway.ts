@@ -29,7 +29,7 @@ export class DeploymentGateway
     this.projectSubscriptions = new Map();
   }
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   handleConnection(client: WebSocket) {
     // this.logger.log('Incoming websocket connection');
