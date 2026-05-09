@@ -10,6 +10,7 @@ export class BuildStrategyFactory {
       case 'REACT':
         return new ReactBuildStrategy();
       case 'STATIC':
+        console.log('reached in static strategy');
         return new StaticBuildStrategy();
 
       default:

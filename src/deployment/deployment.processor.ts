@@ -28,6 +28,7 @@ export class DeploymentProcessor extends WorkerHost {
           deploymentId: job.data.deploymentId,
         },
       });
+      console.log('reached in processor / worker:: ', job.data.type);
       const strategy = this.buildStrategyFactory.getStrategy(job.data.type);
       await this.sandbox.create(job.data, strategy);
       await this.markReady(job);
@@ -138,6 +139,7 @@ export class DeploymentProcessor extends WorkerHost {
   @OnWorkerEvent('failed')
   async onFailed(job: Job, err: Error) {
     console.error('ERROR deploying project:', job.data);
+    console.error('error is : ', err);
   }
 
   async wait(time: number) {

@@ -92,12 +92,16 @@ export class SandboxService {
         '--rm',
         '--name',
         `deployment-${deploymentId}`,
+
+        '--cpus',
+        '0.5',
+
         '-v',
         `${outputDir}:/output`,
         'node:lts-alpine',
         'sh',
         '-c',
-        shellCommand,
+        `timeout 420 sh -c "${shellCommand}"`,
       ]);
 
       proc.stdout.on('data', async (data) => {

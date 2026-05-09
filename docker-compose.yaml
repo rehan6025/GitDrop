@@ -1,4 +1,19 @@
 services:
+  # backend:
+  #   build: .
+  #   container_name: nest-backend
+  #   restart: always
+  #   ports:
+  #     - '3000:3000'
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  #   environment:
+  #     - PORT=3000
+  #     - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/nest_db
+  #     - REDIS_HOST=redis
+  #     - REDIS_PORT=6379
+
   postgres:
     image: postgres:18
     container_name: nest-postgres
@@ -22,6 +37,3 @@ services:
     restart: always
     ports:
       - '6379:6379'
-
-volumes:
-  postgres_data:

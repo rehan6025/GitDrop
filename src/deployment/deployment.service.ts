@@ -25,6 +25,8 @@ export class DeploymentService {
     buildCommand?: string,
   ) {
     this.logger.log(`Enqueue Deployment endpoint hit for project:${name}`);
+    console.log('adding job wit build type:: ', type);
+
     const project = await this.prisma.projects.upsert({
       where: {
         user_id_name: {
@@ -67,6 +69,7 @@ export class DeploymentService {
           projectId: project.id,
           repoUrl: project.repoUrl,
           branch,
+          type: type,
           commitHash: commitHash ?? null,
           buildCommand: buildCommand,
           url: project.url,
