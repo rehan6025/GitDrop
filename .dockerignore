@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.DS_Store
+npm-debug.log
+yarn-error.log
+coverage
+db-data
+postgres_data
+.env

@@ -1,5 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { SandboxService } from './sandbox.service';
+import { SandboxService } from './sandbox.service.js';
+import { beforeEach, describe, it } from 'node:test';
+import { expect } from 'vitest';
 
 describe('SandboxService', () => {
   let service: SandboxService;

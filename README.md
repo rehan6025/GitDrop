@@ -1,98 +1,137 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# GitDrop
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A self-hostable deployment automation backend that connects your GitHub repositories to a live deployment pipeline — triggered via OAuth, queued via Redis, and persisted in PostgreSQL.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Built with **NestJS** · **TypeScript** · **Prisma** · **BullMQ** · **Docker**
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## What It Does
 
-## Project setup
+GitDrop lets users authenticate with GitHub (OAuth), select a repository and branch, and trigger a deployment. The deployment request is pushed onto a Redis-backed **BullMQ queue**, where a separate worker process picks it up, runs the build, and tracks its status in a PostgreSQL database.
 
-```bash
-$ npm install
+```
+Client → Auth (GitHub OAuth) → POST /deployment
+       → BullMQ Queue (Redis) → Worker Process
+       → PostgreSQL (status tracking)
 ```
 
-## Compile and run the project
+---
+
+## Tech Stack
+
+| Layer        | Technology                     |
+|--------------|-------------------------------|
+| Framework    | NestJS (Node.js + TypeScript)  |
+| Database     | PostgreSQL via Prisma ORM      |
+| Queue        | BullMQ + Redis                 |
+| Auth         | GitHub OAuth + JWT (cookies)   |
+| Containers   | Docker + Docker Compose        |
+| Testing      | Vitest (unit), Jest (e2e)      |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 20+
+- Docker & Docker Compose
+
+### 1. Clone & Install
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+git clone https://github.com/your-username/git-drop.git
+cd git-drop
+npm install
 ```
 
-## Run tests
+### 2. Configure Environment
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+cp confSample.txt .env
+# Fill in your GitHub OAuth credentials, DB URL, JWT secret, etc.
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 3. Start Infrastructure (Postgres + Redis)
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+docker compose up -d
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 4. Run Migrations & Start
 
-## Resources
+```bash
+npx prisma migrate dev
+npm run start:dev
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+The API server starts on `http://localhost:3000`.  
+The worker process runs separately via `node dist/src/worker.main.js`.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+---
 
-## Support
+## Docker
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+A `Dockerfile` is included that builds the app and starts both the API server and the BullMQ worker in a single container:
 
-## Stay in touch
+```bash
+docker build -t git-drop .
+docker run -p 3000:3000 --env-file .env git-drop
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+For full local stack (app + postgres + redis), uncomment the `backend` service in `docker-compose.yaml`.
+
+---
+
+## Key API Endpoints
+
+| Method | Endpoint                              | Description                      |
+|--------|---------------------------------------|----------------------------------|
+| GET    | `/auth/github`                        | Initiate GitHub OAuth flow       |
+| GET    | `/auth/github/callback`               | OAuth callback, sets JWT cookie  |
+| GET    | `/auth/me`                            | Returns current authenticated user |
+| POST   | `/auth/logout`                        | Clears JWT cookie                |
+| GET    | `/github/repos`                       | List user's GitHub repositories  |
+| GET    | `/github/repos/:owner/:repo/branches` | List branches for a repo         |
+| POST   | `/deployment`                         | Enqueue a new deployment         |
+| GET    | `/projects`                           | List all projects for the user   |
+| GET    | `/projects/:id/deployments`           | List deployments for a project   |
+
+See [`API_DOCUMENTATION.md`](./API_DOCUMENTATION.md) for full request/response details.
+
+---
+
+## Testing
+
+```bash
+# Unit tests
+npm run test
+
+# Watch mode
+npm run test:watch
+
+# Coverage report
+npm run test:cov
+```
+
+---
+
+## Project Structure
+
+```
+src/
+├── auth/          # GitHub OAuth, JWT strategy, guards
+├── github/        # GitHub API integration (repos, branches)
+├── deployment/    # Deployment enqueueing & status
+├── projects/      # Project & deployment listing
+├── sandbox/       # Worker/queue sandbox utilities
+├── prisma/        # Prisma service
+└── worker.main.ts # BullMQ worker entrypoint
+```
+
+---
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+MIT

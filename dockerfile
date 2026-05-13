@@ -1,3 +1,4 @@
+
 FROM node:20
 
 WORKDIR /app
@@ -10,4 +11,4 @@ COPY . .
 
 RUN npm run build
 
-CMD ["bash", "-lc", "npm run start:prod & node dist/src/worker.main.js"]
+CMD ["bash", "-lc", "npm run start:dev & node dist/src/worker.main.js"]

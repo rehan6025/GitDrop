@@ -37,7 +37,8 @@ export class SandboxService {
   }
 
   async prepareDirectories(url: string): Promise<string> {
-    const baseDir = 'C:/Users/Rehan/Desktop/backup_coding/Projects/deployments';
+    const bDir = process.env.DEPLOYMENTS_DIR;
+    const baseDir = bDir;
     const projectDir = `${baseDir}/${url}`;
     const outputDir = `${projectDir}/current`;
 
@@ -94,7 +95,7 @@ export class SandboxService {
         `deployment-${deploymentId}`,
 
         '--cpus',
-        '0.5',
+        '1.0',
 
         '-v',
         `${outputDir}:/output`,

@@ -1,18 +1,27 @@
 services:
-  # backend:
-  #   build: .
-  #   container_name: nest-backend
-  #   restart: always
-  #   ports:
-  #     - '3000:3000'
-  #   depends_on:
-  #     - postgres
-  #     - redis
-  #   environment:
-  #     - PORT=3000
-  #     - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/nest_db
-  #     - REDIS_HOST=redis
-  #     - REDIS_PORT=6379
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nest-backend
+    restart: always
+    ports:
+      - '3000:3000'
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/nestdb
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CLIENT_ID=Ov23libU3RtnCxHrYLG9
+      - CLIENT_SECRET=4ea875342e6bf6cf1a78c17e11d177ed49b78174
+      - REDIRECT_URI=http://localhost:3000/auth/callback
+      - JWT_SECRET=RehanSecretOfJWT
+      - FRONTEND_URL=http://localhost:5173/
+      - DEPLOYMENTS_DIR=/deployments
+    volumes:
+      - D:/deployments:/deployments
 
   postgres:
     image: postgres:18

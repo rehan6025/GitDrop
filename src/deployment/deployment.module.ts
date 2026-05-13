@@ -6,18 +6,23 @@ import { BullModule } from '@nestjs/bullmq';
 import { DeploymentProcessor } from './deployment.processor.js';
 import { SandboxModule } from '../sandbox/sandbox.module.js';
 import { DeploymentGatewayModule } from './deployment-gateway.module.js';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
     SandboxModule,
     DeploymentGatewayModule,
     AuthModule,
-    BullModule.registerQueue({
+    BullModule.registerQueueAsync({
       name: 'build-queue',
-      connection: {
-        host: 'localhost',
-        port: 6379,
-      },
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>('REDIS_HOST'),
+          port: configService.get<number>('REDIS_PORT'),
+        },
+      }),
+      inject: [ConfigService],
     }),
   ],
   providers: [DeploymentService, DeploymentProcessor],
