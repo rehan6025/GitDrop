@@ -1,6 +1,8 @@
 
 FROM node:20
 
+COPY --from=docker:27-cli /usr/local/bin/docker /usr/local/bin/docker
+
 WORKDIR /app
 
 COPY package*.json ./

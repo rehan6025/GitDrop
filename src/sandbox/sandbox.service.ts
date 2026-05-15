@@ -41,6 +41,7 @@ export class SandboxService {
     const baseDir = bDir;
     const projectDir = `${baseDir}/${url}`;
     const outputDir = `${projectDir}/current`;
+    console.log(outputDir);
 
     await rm(outputDir, { recursive: true, force: true });
     await mkdir(outputDir, { recursive: true });
@@ -83,6 +84,7 @@ export class SandboxService {
     const shellCommand = strategy.getCommand(
       repoUrl,
       branch,
+      outputDir,
       commitHash,
       buildCommand,
     );
@@ -98,7 +100,7 @@ export class SandboxService {
         '1.0',
 
         '-v',
-        `${outputDir}:/output`,
+        `${process.env.MACHINE_DEPLOYMENTS_PATH}:/deployments`,
         'node:lts-alpine',
         'sh',
         '-c',

@@ -20,9 +20,11 @@ services:
       - JWT_SECRET=RehanSecretOfJWT
       - FRONTEND_URL=http://localhost:5173/
       - DEPLOYMENTS_DIR=/deployments
+      - MACHINE_DEPLOYMENTS_PATH=D:/deployments
     volumes:
-      - D:/deployments:/deployments
-
+      - ${MACHINE_DEPLOYMENTS_PATH}:/deployments
+      # docker host mounting to spawn processes
+      - /var/run/docker.sock:/var/run/docker.sock
   postgres:
     image: postgres:18
     container_name: nest-postgres
@@ -46,3 +48,6 @@ services:
     restart: always
     ports:
       - '6379:6379'
+
+volumes:
+  deployments-data:
