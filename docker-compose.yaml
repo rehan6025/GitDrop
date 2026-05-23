@@ -14,10 +14,10 @@ services:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/nestdb
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - CLIENT_ID=Ov23libU3RtnCxHrYLG9
-      - CLIENT_SECRET=4ea875342e6bf6cf1a78c17e11d177ed49b78174
+      - CLIENT_ID=${CLIENT_SECRET}
+      - CLIENT_SECRET=${CLIENT_SECRET}
       - REDIRECT_URI=http://localhost:3000/auth/callback
-      - JWT_SECRET=RehanSecretOfJWT
+      - JWT_SECRET=${JWT_SECRET}
       - FRONTEND_URL=http://localhost:5173/
       - DEPLOYMENTS_DIR=/deployments
       - MACHINE_DEPLOYMENTS_PATH=D:/deployments
@@ -59,7 +59,7 @@ services:
     ports:
       - '8000:8000'
     environment:
-      - API_KEY=AIzaSyDouKhIxb7CJHT-QY_I8aTnrwiUxiU-TY0
+      - API_KEY=${API_KEY}
 
 volumes:
   deployments-data:
