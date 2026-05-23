@@ -18,7 +18,7 @@ http {
         server_name ~^(?<proj>[a-z0-9-]+)\.localhost$;
 
         # Base folder where all projects exist
-        root "C:/Users/Rehan/Desktop/backup_coding/Projects/deployments/$proj/current";
+        root "D:/deployments/$proj/current";
 
         index index.html;
 
@@ -32,6 +32,6 @@ http {
         }
 
         # Debug logs (optional)
-        error_log "C:/nginx/logs/debug_error.log" debug;        
+        error_log "C:/nginx/logs/debug_error.log" debug;
     }
 }

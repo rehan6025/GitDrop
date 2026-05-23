@@ -21,6 +21,7 @@ services:
       - FRONTEND_URL=http://localhost:5173/
       - DEPLOYMENTS_DIR=/deployments
       - MACHINE_DEPLOYMENTS_PATH=D:/deployments
+      - AI_SERVICE_URL=http://ai-service:8000
     volumes:
       - ${MACHINE_DEPLOYMENTS_PATH}:/deployments
       # docker host mounting to spawn processes
@@ -48,6 +49,17 @@ services:
     restart: always
     ports:
       - '6379:6379'
+
+  ai-service:
+    build:
+      context: /ai-service
+      dockerfile: Dockerfile
+    container_name: ai-service
+    restart: always
+    ports:
+      - '8000:8000'
+    environment:
+      - API_KEY=AIzaSyDouKhIxb7CJHT-QY_I8aTnrwiUxiU-TY0
 
 volumes:
   deployments-data:
