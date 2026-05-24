@@ -17,5 +17,5 @@ def read_root():
 
 @app.post("/analyze")
 async def analyze_log(log:Log):
-    res = await getOllamaResponse(log.text)
+    res = await getGeminiResponse(log.text)
     return {"result": res }     

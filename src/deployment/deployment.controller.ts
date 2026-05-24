@@ -35,6 +35,18 @@ export class DeploymentController {
       Number(userId),
     );
   }
+
+  @Get('/:id/analyze')
+  @UseGuards(AuthGuard)
+  getAnalysis(@Param('id') deploymentId: string, @Req() request: Request) {
+    const userId = (request as Request & { user: { id: string } }).user.id;
+
+    return this.deploymentService.getDeploymentAnalysis(
+      Number(deploymentId),
+      Number(userId),
+    );
+  }
+
   @Get('/:id/status')
   @UseGuards(AuthGuard)
   getStatus(@Param('id') deploymentId: string, @Req() request: Request) {

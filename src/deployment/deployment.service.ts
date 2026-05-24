@@ -1,9 +1,10 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Body, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DeploymentGateway } from './deployment.gateway.js';
 import { ProjectType } from '../../generated/prisma/enums.js';
+import axios from 'axios';
 
 @Injectable()
 export class DeploymentService {
@@ -110,6 +111,32 @@ export class DeploymentService {
     return deployment.logs;
   }
 
+  async getDeploymentAnalysis(deploymentId: number, userId: number) {
+    const deployment = await this.prisma.deployments.findFirst({
+      where: {
+        id: deploymentId,
+        project: {
+          user_id: userId,
+        },
+      },
+      include: {
+        logs: {
+          orderBy: { createdAt: 'desc' },
+          take: 30,
+        },
+      },
+    });
+
+    const logs = deployment?.logs;
+    const parsedLogs = JSON.stringify(logs);
+
+    const res = await axios.post('http://ai-service:8000/analyze', {
+      text: parsedLogs,
+    });
+
+    return res.data;
+  }
+
   async getStatus(deploymentId: number, userId: number) {
     const deployment = await this.prisma.deployments.findFirst({
       where: {
@@ -118,7 +145,6 @@ export class DeploymentService {
           user_id: userId,
         },
       },
-      include: { logs: true },
     });
 
     if (!deployment) {
