@@ -105,7 +105,10 @@ export class AuthService {
 
       return this.jwtService.sign(payload);
     } catch (error) {
-      this.logger.error('GitHub OAuth callback failed', error.stack);
+      this.logger.error(
+        'GitHub OAuth callback failed',
+        error instanceof Error ? error.stack : String(error),
+      );
       throw error;
     }
   }
@@ -122,7 +125,10 @@ export class AuthService {
 
       return data;
     } catch (error) {
-      this.logger.error('Error getting user profile details', error.stack);
+      this.logger.error(
+        'Error getting user profile details',
+        error instanceof Error ? error.stack : String(error),
+      );
       throw error;
     }
   }

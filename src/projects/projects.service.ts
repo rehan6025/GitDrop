@@ -11,6 +11,9 @@ export class ProjectsService {
         where: {
           user_id: userId,
         },
+        orderBy: {
+          updatedAt: 'desc',
+        },
       });
 
       return data;

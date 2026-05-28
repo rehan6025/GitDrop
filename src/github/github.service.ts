@@ -14,7 +14,11 @@ export class GithubService {
 
   private readonly logger = new Logger(GithubService.name);
 
-  async getRepos(user: AuthenticatedUser): Promise<any> {
+  async getRepos(
+    user: AuthenticatedUser,
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<any> {
     this.logger.log('Get Repos endpoint hit');
 
     this.logger.log('Fetching user access token from db');
@@ -29,6 +33,8 @@ export class GithubService {
       throw new Error('access token does not exist');
     }
 
+    limit = Math.min(limit, 100);
+
     try {
       this.logger.log('Getting user repos from github api');
       const { data } = await axios.get(
@@ -37,16 +43,28 @@ export class GithubService {
           headers: {
             Authorization: `Bearer ${githubAuth.accessToken}`,
           },
+          params: {
+            page,
+            per_page: limit,
+            sort: 'updated',
+          },
         },
       );
       this.logger.log('Found user repos');
-      return data;
-    } catch (error) {
+      return {
+        page,
+        limit,
+        count: data.length,
+        hasNextPage: data.length === limit,
+        repos: data,
+      };
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(
         'Could not get user Repos, operation failed',
-        error.stack,
+        err.stack,
       );
-      throw new error();
+      throw err;
     }
   }
 
@@ -81,9 +99,10 @@ export class GithubService {
         name: branch.name,
         sha: branch.commit.sha,
       }));
-    } catch (error) {
-      this.logger.error('Failed to get branches from github ', error.stack);
-      throw new error();
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.logger.error('Failed to get branches from github ', err.stack);
+      throw err;
     }
   }
 }

@@ -8,6 +8,6 @@ export class ReactBuildStrategy implements IBuildStrategy {
     commitHash?: string,
     buildCommand?: string,
   ): string {
-    return `apk add --no-cache git && mkdir -p /app && cd /app && git clone "${repoUrl}" repo && cd repo && ${commitHash ? `git checkout ${commitHash}` : `git checkout ${branch} && git rev-parse HEAD`} && npm install && ${buildCommand} && cp -r dist/* ${outputDir} || cp -r build/* ${outputDir}t`.trim();
+    return `apk add --no-cache git && mkdir -p /app && cd /app && git clone "${repoUrl}" repo && cd repo && ${commitHash ? `git checkout ${commitHash}` : `git checkout ${branch} && git rev-parse HEAD`} && npm install && ${buildCommand} && cp -r dist/* ${outputDir} || cp -r build/* ${outputDir}`.trim();
   }
 }
