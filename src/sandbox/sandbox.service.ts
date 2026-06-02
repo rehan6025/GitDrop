@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { spawn } from 'child_process';
 import { rm, mkdir } from 'fs/promises';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -24,6 +24,8 @@ export class SandboxService {
     private gateway: DeploymentGateway,
     private logger: DeploymentLogger,
   ) {}
+
+  private readonly devLogger = new Logger(SandboxService.name);
 
   async cleanupState(deploymentId: string) {
     await new Promise<void>((res) => {
@@ -60,6 +62,7 @@ export class SandboxService {
       url,
     } = jobData;
 
+    this.devLogger.log(`Reached inside sandbox service for : ${deploymentId}`);
     await this.prisma.deployments.update({
       where: {
         id: deploymentId,
@@ -76,9 +79,16 @@ export class SandboxService {
         status: 'IN_PROGRESS',
       },
     });
+    this.devLogger.log(
+      `Updated db state for deploymen: ${deploymentId} and project :${projectId}`,
+    );
 
+    this.devLogger.log(`Cleaning old state `);
     await this.cleanupState(deploymentId);
 
+    this.devLogger.log(
+      `Preparing new dirs with url :${url} for id: ${deploymentId}`,
+    );
     const outputDir = await this.prepareDirectories(url);
 
     const shellCommand = strategy.getCommand(
@@ -90,6 +100,9 @@ export class SandboxService {
     );
 
     return new Promise<void>((resolve, reject) => {
+      this.devLogger.log(
+        `Spawning child process with docker for id: ${deploymentId}`,
+      );
       const proc = spawn('docker', [
         'run',
         '--rm',
@@ -109,6 +122,7 @@ export class SandboxService {
 
       proc.stdout.on('data', async (data) => {
         this.logger.log(deploymentId, data);
+        this.devLogger.log('sending updates via ws');
       });
 
       proc.stderr.on('data', (data) => {

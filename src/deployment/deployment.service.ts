@@ -26,7 +26,6 @@ export class DeploymentService {
     buildCommand?: string,
   ) {
     this.logger.log(`Enqueue Deployment endpoint hit for project:${name}`);
-    console.log('adding job wit build type:: ', type);
 
     const project = await this.prisma.projects.upsert({
       where: {
@@ -81,6 +80,7 @@ export class DeploymentService {
           attempts: 3,
         },
       );
+      this.logger.log(`Build successfully added to the build queue`);
 
       return { deploymentId: deployment.id, status: 'QUEUED' };
     } catch (error) {
@@ -95,6 +95,7 @@ export class DeploymentService {
   }
 
   async getDeploymentLogs(deploymentId: number, userId: number) {
+    this.logger.log('Hit deployment service , retreiving dep logs from db');
     const deployment = await this.prisma.deployments.findFirst({
       where: {
         id: deploymentId,

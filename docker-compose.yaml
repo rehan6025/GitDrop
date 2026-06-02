@@ -14,7 +14,7 @@ services:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/nestdb
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - CLIENT_ID=${CLIENT_SECRET}
+      - CLIENT_ID=${CLIENT_ID}
       - CLIENT_SECRET=${CLIENT_SECRET}
       - REDIRECT_URI=http://localhost:3000/auth/callback
       - JWT_SECRET=${JWT_SECRET}

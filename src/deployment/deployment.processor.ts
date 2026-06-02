@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { SandboxService } from '../sandbox/sandbox.service.js';
 import { DeploymentGateway } from './deployment.gateway.js';
 import { BuildStrategyFactory } from '../sandbox/strategies/build-strategy.factory.js';
+import { Logger } from '@nestjs/common';
 
 @Processor('build-queue')
 export class DeploymentProcessor extends WorkerHost {
@@ -15,9 +16,13 @@ export class DeploymentProcessor extends WorkerHost {
   ) {
     super();
   }
+  private readonly logger = new Logger(DeploymentProcessor.name);
 
   async process(job: Job): Promise<any> {
     try {
+      this.logger.log(
+        `Picked up job from queue , job id:${job.data.deploymentId}`,
+      );
       this.gateway.sendDeploymentUpdate(job.data.deploymentId, {
         type: 'log',
         log: 'Starting deployment...',
@@ -29,10 +34,18 @@ export class DeploymentProcessor extends WorkerHost {
         },
       });
       const strategy = this.buildStrategyFactory.getStrategy(job.data.type);
+
+      this.logger.log(
+        `Creating Sandbox for deployement: ${job.data.deploymentId}`,
+      );
       await this.sandbox.create(job.data, strategy);
+      this.logger.log(
+        `Sandbox execution finished successfully. Id: ${job.data.deploymentId}`,
+      );
       await this.markReady(job);
     } catch (error) {
       await this.markFailed(job);
+      this.logger.log(`Deployment failed for Id: ${job.data.deploymentId}`);
       throw error;
     }
   }
@@ -113,7 +126,6 @@ export class DeploymentProcessor extends WorkerHost {
       type: 'status',
       status: 'IN_PROGRESS',
     });
-
     this.gateway.sendDeploymentUpdate(job.data.deploymentId, {
       type: 'log',
       log: 'Deployment in progress...',
@@ -132,7 +144,7 @@ export class DeploymentProcessor extends WorkerHost {
 
   @OnWorkerEvent('completed')
   async onCompleted(job: Job) {
-    console.log('Job completed successfully , check db, state is ready');
+    this.logger.log('Job completed successfully , check db, state is ready');
   }
 
   @OnWorkerEvent('failed')
