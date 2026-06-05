@@ -121,8 +121,21 @@ export class SandboxService {
       ]);
 
       proc.stdout.on('data', async (data) => {
+        let line = data.toString();
+
+        if (line.includes('__STAGE__:CLONING')) {
+          this.logger.statusUpdate(deploymentId, 'CLONING');
+        } else if (line.includes('__STAGE__:INSTALLING')) {
+          this.logger.statusUpdate(deploymentId, 'INSTALLING');
+        } else if (line.includes('__STAGE__:BUILDING')) {
+          this.logger.statusUpdate(deploymentId, 'BUILDING');
+        } else if (line.includes('__STAGE__:COPYING')) {
+          this.logger.statusUpdate(deploymentId, 'COPYING');
+        } else if (line.includes('__STAGE__:DONE')) {
+          this.logger.statusUpdate(deploymentId, 'DONE');
+        }
+
         this.logger.log(deploymentId, data);
-        this.devLogger.log('sending updates via ws');
       });
 
       proc.stderr.on('data', (data) => {

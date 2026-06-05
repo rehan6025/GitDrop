@@ -145,6 +145,24 @@ export class DeploymentGateway
     });
   }
 
+  sendDeploymentStatus(deploymentId: number, data: any) {
+    const clients = this.deploymentSubscriptions.get(deploymentId);
+
+    if (!clients) return;
+
+    clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(
+          JSON.stringify({
+            event: 'deployment-status',
+            deploymentId,
+            data,
+          }),
+        );
+      }
+    });
+  }
+
   sendProjectUpdate(projectId: number, data: any) {
     const clients = this.projectSubscriptions.get(projectId);
 

@@ -27,4 +27,14 @@ export class DeploymentLogger {
       })
       .catch(console.error);
   }
+
+  async statusUpdate(deploymentId: number, message: string) {
+    const status = message.trim();
+    if (!status) return;
+
+    this.gateway.sendDeploymentStatus(deploymentId, {
+      type: 'status',
+      status,
+    });
+  }
 }
